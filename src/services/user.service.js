@@ -2,40 +2,51 @@ import admin from "firebase-admin";
 import bcrypt from "bcryptjs";
 import axios from "axios";
 
-export const createUser = async (email, password, name) => {
+export const createUser = async (
+  email,
+  password,
+  name,
+  age,
+  gender,
+  bloodGroup
+) => {
   const firestore = admin.firestore();
 
+  // Create user in Firebase Auth
+  const userRecord = await admin.auth().createUser({
+    email,
+    password,
+    displayName: name,
+  });
 
+  // Optional: hash the password if you really need to store it (NOT RECOMMENDED)
   const hashedPassword = await bcrypt.hash(password, 10);
 
-
-  const userRecord = await admin
-    .auth()
-    .createUser({ email, password, displayName: name });
-
- 
+  // Prepare Firestore user data (exclude password in real production app)
   const userData = {
     uid: userRecord.uid,
     email,
     name,
-    password: hashedPassword, 
+    age: Number(age),
+    gender,
+    bloodGroup,
+    password: hashedPassword,
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
     lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
   };
 
-
+  // Clean undefined/null fields
   Object.keys(userData).forEach((key) => {
-    if (userData[key] === undefined) {
+    if (userData[key] === undefined || userData[key] === null) {
       delete userData[key];
     }
   });
 
-  const docRef = firestore.collection("users").doc(userRecord.uid);
-  await docRef.set(userData);
+  // Save to Firestore
+  await firestore.collection("users").doc(userRecord.uid).set(userData);
 
   return userRecord;
 };
-
 
 export const getUserByEmail = async (email) => {
   const firestore = admin.firestore();
@@ -60,8 +71,13 @@ export const generateToken = async (email, password) => {
         returnSecureToken: true,
       }
     );
-
-    return response.data.idToken;
+const { idToken, refreshToken, expiresIn, localId } = response.data;
+      return {
+        access_Token: idToken,
+        refresh_Token: refreshToken,
+        expiresIn,
+        uid: localId,
+      };
   } catch (error) {
     console.error(
       " Failed to generate ID token:",
@@ -71,7 +87,39 @@ export const generateToken = async (email, password) => {
   }
 };
 
+export const refreshAccessToken = async (refreshToken) => {
+  const apiKey = process.env.FIREBASE_API_KEY;
 
+  try {
+    const response = await axios.post(
+      `https://securetoken.googleapis.com/v1/token?key=${apiKey}`,
+      new URLSearchParams({
+        grant_type: "refresh_token",
+        refresh_token: refreshToken,
+      }),
+      {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      }
+    );
+
+    const { id_token, refresh_token, expires_in, user_id } = response.data;
+
+    return {
+      accessToken: id_token,
+      refreshToken: refresh_token,
+      expiresIn: expires_in,
+      uid: user_id,
+    };
+  } catch (error) {
+    console.error(
+      "Failed to refresh token:",
+      error.response?.data || error.message
+    );
+    throw new Error("Firebase token refresh failed");
+  }
+};
 
 
 export const updateUserData = async (uid, updates) => {

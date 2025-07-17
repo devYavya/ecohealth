@@ -16,6 +16,7 @@ import {
  */
 
 /**
+/**
  * @swagger
  * /api/auth/signup:
  *   post:
@@ -27,7 +28,7 @@ import {
  *         application/json:
  *           schema:
  *             type: object
- *             required: [email, password, displayName]
+ *             required: [email, password, name, age, gender, bloodGroup]
  *             properties:
  *               email:
  *                 type: string
@@ -35,15 +36,37 @@ import {
  *               password:
  *                 type: string
  *                 example: P@ssw0rd123
- *               displayName:
+ *               name:
  *                 type: string
- *                 example: JohnDoe
+ *                 example: John Doe
+ *               age:
+ *                 type: integer
+ *                 example: 30
+ *               gender:
+ *                 type: string
+ *                 enum: [Male, Female, Other]
+ *                 example: Male
+ *               bloodGroup:
+ *                 type: string
+ *                 example: B+
  *     responses:
  *       201:
- *         description: User created successfully
+ *         description: Signup successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Signup successful
+ *                 uid:
+ *                   type: string
+ *                   example: abcd1234uid
  *       400:
  *         description: Invalid input or email already exists
  */
+
 
 /**
  * @swagger
