@@ -6,8 +6,40 @@ import {
   signup,
   socialLogin,
   sendPasswordResetEmail,
+  refreshToken,
   logout,
 } from "../controllers/auth.controller.js";
+import {
+  validateRequest,
+  signupSchema,
+  loginSchema,
+  socialLoginSchema,
+  passwordResetSchema,
+} from "../middlewares/validation.middleware.js";
+import {
+  authLimiter,
+  passwordResetLimiter,
+} from "../middlewares/rateLimiter.middleware.js";
+
+// Routes with validation and rate limiting
+router.post("/signup", authLimiter, validateRequest(signupSchema), signup);
+router.post("/login", authLimiter, validateRequest(loginSchema), login);
+router.post(
+  "/social-login",
+  authLimiter,
+  validateRequest(socialLoginSchema),
+  socialLogin
+);
+router.post(
+  "/reset-password",
+  passwordResetLimiter,
+  validateRequest(passwordResetSchema),
+  sendPasswordResetEmail
+);
+router.post("/refresh-token", authLimiter, refreshToken);
+router.post("/logout", logout);
+
+export default router;
 /**
  * @swagger
  * tags:
@@ -66,7 +98,6 @@ import {
  *       400:
  *         description: Invalid input or email already exists
  */
-
 
 /**
  * @swagger
@@ -157,12 +188,3 @@ import {
  *       200:
  *         description: Logged out successfully
  */
-
-
-router.post("/signup", signup);
-router.post("/login", login);
-router.post("/social-login", socialLogin);
-router.post("/reset-password", sendPasswordResetEmail);
-router.post("/logout", logout);
-
-export default router;

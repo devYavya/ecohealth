@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "start": "node src/index.js",
-    "dev": "nodemon src/index.js"
+    "dev": "nodemon src/index.js",
+    "seed:challenges": "node scripts/seedChallenges.js",
+    "seed:onboarding": "node src/scripts/seedOnboardingData.js"
   },
   "author": "ecohealth",
   "license": "ISC",
@@ -16,7 +18,9 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.0",
     "express": "^5.1.0",
+    "express-rate-limit": "^8.0.1",
     "firebase-admin": "^13.4.0",
+    "joi": "^17.13.3",
     "morgan": "^1.10.0",
     "multer": "^2.0.1",
     "nodemailer": "^7.0.5",

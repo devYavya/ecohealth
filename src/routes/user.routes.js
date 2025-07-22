@@ -3,10 +3,22 @@ const router = express.Router();
 import {
   getUserProfile,
   updateUserProfile,
-  upsertUserProfile
+  upsertUserProfile,
+  checkProfileCompletion,
 } from "../controllers/user.controller.js";
-import { uploadProfilePicture, uploadMiddleware } from "../controllers/upload.controller.js";
-import { verifyToken } from "../middlewares/auth.middleware.js";
+import {
+  uploadProfilePicture,
+  uploadMiddleware,
+} from "../controllers/upload.controller.js";
+import {
+  verifyToken,
+  requireCompleteProfile,
+} from "../middlewares/auth.middleware.js";
+import {
+  validateRequest,
+  profileSchema,
+} from "../middlewares/validation.middleware.js";
+import { generalLimiter } from "../middlewares/rateLimiter.middleware.js";
 /**
  * @swagger
  * tags:
@@ -196,16 +208,34 @@ import { verifyToken } from "../middlewares/auth.middleware.js";
  *         description: Failed to upload profile picture
  */
 
-
-router.get("/profile", verifyToken, getUserProfile);
-router.put("/profile", verifyToken, updateUserProfile);
-router.post("/profile", verifyToken, upsertUserProfile);
+// Routes with authentication and validation
+router.get("/profile", generalLimiter, verifyToken, getUserProfile);
+router.put(
+  "/profile",
+  generalLimiter,
+  verifyToken,
+  validateRequest(profileSchema),
+  updateUserProfile
+);
+router.post(
+  "/profile",
+  generalLimiter,
+  verifyToken,
+  validateRequest(profileSchema),
+  upsertUserProfile
+);
+router.get(
+  "/profile/completion",
+  generalLimiter,
+  verifyToken,
+  checkProfileCompletion
+);
 router.post(
   "/profile-picture",
+  generalLimiter,
   verifyToken,
   uploadMiddleware,
   uploadProfilePicture
 );
-
 
 export default router;

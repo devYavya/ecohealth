@@ -26,7 +26,7 @@ if (!admin.apps.length) {
     console.log(" Firebase Admin initialized successfully");
   } catch (error) {
     console.error(" Firebase initialization failed:", error.message);
-    console.log("📝 Please ensure your Firebase service account is correct.");
+
   }
 }
 

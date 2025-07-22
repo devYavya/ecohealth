@@ -2,6 +2,28 @@ import admin from "firebase-admin";
 import bcrypt from "bcryptjs";
 import axios from "axios";
 
+export const checkUserExists = async (email) => {
+  try {
+    const user = await admin.auth().getUserByEmail(email);
+    return user ? { uid: user.uid, email: user.email } : null;
+  } catch (error) {
+    if (error.code === "auth/user-not-found") {
+      return null;
+    }
+    throw error;
+  }
+};
+
+export const linkSocialAccount = async (existingUid, socialIdToken) => {
+  try {
+    // This would implement account linking logic
+    // For now, we'll throw an error to indicate it needs manual handling
+    throw new Error("Account linking requires user confirmation");
+  } catch (error) {
+    throw error;
+  }
+};
+
 export const createUser = async (
   email,
   password,
@@ -19,21 +41,19 @@ export const createUser = async (
     displayName: name,
   });
 
-  // Optional: hash the password if you really need to store it (NOT RECOMMENDED)
-  const hashedPassword = await bcrypt.hash(password, 10);
-
-  // Prepare Firestore user data (exclude password in real production app)
+  // Prepare Firestore user data (exclude password in production)
   const userData = {
     uid: userRecord.uid,
     email,
     name,
-    age: Number(age),
-    gender,
-    bloodGroup,
-    password: hashedPassword,
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
     lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
   };
+
+  // Only add optional fields if they exist
+  if (age) userData.age = Number(age);
+  if (gender) userData.gender = gender;
+  if (bloodGroup) userData.bloodGroup = bloodGroup;
 
   // Clean undefined/null fields
   Object.keys(userData).forEach((key) => {
@@ -71,13 +91,13 @@ export const generateToken = async (email, password) => {
         returnSecureToken: true,
       }
     );
-const { idToken, refreshToken, expiresIn, localId } = response.data;
-      return {
-        access_Token: idToken,
-        refresh_Token: refreshToken,
-        expiresIn,
-        uid: localId,
-      };
+    const { idToken, refreshToken, expiresIn, localId } = response.data;
+    return {
+      access_Token: idToken,
+      refresh_Token: refreshToken,
+      expiresIn,
+      uid: localId,
+    };
   } catch (error) {
     console.error(
       " Failed to generate ID token:",
@@ -120,7 +140,6 @@ export const refreshAccessToken = async (refreshToken) => {
     throw new Error("Firebase token refresh failed");
   }
 };
-
 
 export const updateUserData = async (uid, updates) => {
   const firestore = admin.firestore();
