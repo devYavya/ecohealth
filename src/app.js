@@ -9,8 +9,14 @@ admin;
 import authRoutes from "./routes/auth.routes.js";
 import userRoutes from "./routes/user.routes.js";
 import onboardingRoutes from "./routes/onboarding.routes.js";
+import dailyLogsRoutes from "./routes/dailyLogs.routes.js";
+// import carbonRoutes from "./routes/carbon.routes.js";
+// import tipsRoutes from "./routes/tips.routes.js";
+import aiTipsRoutes from "./routes/aiTips.routes.js";
+import gamificationRoutes from "./routes/gamification.routes.js";
 import socialFeedRoutes from "./routes/socialFeed.routes.js";
-
+import challengesRoutes from "./routes/challenges.routes.js";
+import adminRoutes from "./routes/admin.routes.js";
 
 import { errorHandler } from "./middlewares/error.middleware.js";
 
@@ -28,8 +34,14 @@ app.use(morgan("dev"));
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/onboarding", onboardingRoutes);
+app.use("/api/daily-logs", dailyLogsRoutes);
+// app.use("/api/carbon", carbonRoutes);
+// app.use("/api/tips", tipsRoutes);
+app.use("/api/ai-tip", aiTipsRoutes);
+// app.use("/api/gamification", gamificationRoutes);
 app.use("/api/feed", socialFeedRoutes);
-
+app.use("/api/challenges", challengesRoutes);
+app.use("/api/admin", adminRoutes);
 
 // Error handler
 app.use(errorHandler);

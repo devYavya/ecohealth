@@ -48,6 +48,14 @@ export const signupSchema = Joi.object({
       "any.only":
         "Blood group must be one of: A+, A-, B+, B-, AB+, AB-, O+, O-",
     }),
+
+  role: Joi.string()
+    .valid("user", "admin")
+    .default("user")
+    .optional()
+    .messages({
+      "any.only": "Role must be either 'user' or 'admin'",
+    }),
 });
 
 export const loginSchema = Joi.object({

@@ -299,4 +299,18 @@ router.get("/progress", verifyToken, getOnboardingProgress);
 router.post("/submit", verifyToken, submitOnboarding);
 router.get("/dashboard", verifyToken, getDashboardData);
 
+// TEST ENDPOINT - Remove in production
+router.post("/test-submit", async (req, res) => {
+  try {
+    // Mock user for testing
+    req.user = { uid: "test-user-123" };
+    await submitOnboarding(req, res);
+  } catch (error) {
+    res.status(500).json({
+      error: "Test endpoint error",
+      details: error.message,
+    });
+  }
+});
+
 export default router;

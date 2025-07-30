@@ -3,351 +3,419 @@ import { calculateCarbonFootprint } from "../utils/carbonLogic.js";
 
 const FieldValue = admin.firestore.FieldValue;
 
-// 15 Onboarding Questions with options
+// Comprehensive Onboarding Questions based on 4 profiles
 export const getOnboardingQuestions = async (req, res) => {
   try {
-    const questions = [
-      {
-        id: 1,
-        question:
-          "What is your primary mode of transportation for daily commute?",
-        field: "primaryTransport",
-        type: "single_choice",
-        options: [
-          { value: "car_daily", label: "Personal Car (Daily)", icon: "🚗" },
-          {
-            value: "public_transport",
-            label: "Public Transport (Bus/Metro)",
-            icon: "🚌",
+    const questions = {
+      transport: [
+        {
+          id: "transport_1",
+          question: "What is your primary mode of daily commute?",
+          field: "primaryMode",
+          type: "single_choice",
+          options: [
+            { value: "personal_car", label: "Personal Car", icon: "🚗" },
+            {
+              value: "two_wheeler",
+              label: "Two-wheeler (bike/scooter)",
+              icon: "🏍️",
+            },
+            { value: "bus", label: "Bus", icon: "🚌" },
+            { value: "metro_train", label: "Metro/Train", icon: "🚇" },
+            { value: "bicycle", label: "Bicycle", icon: "🚲" },
+            { value: "walking", label: "Walking", icon: "🚶" },
+            { value: "work_from_home", label: "I work from home", icon: "🏠" },
+          ],
+        },
+        {
+          id: "transport_2",
+          question: "What type of fuel does your main vehicle use?",
+          field: "fuelType",
+          type: "single_choice",
+          condition: {
+            field: "primaryMode",
+            values: ["personal_car", "two_wheeler"],
           },
-          { value: "bike_scooter", label: "Bike/Scooter", icon: "🏍️" },
-          { value: "walking", label: "Walking", icon: "🚶" },
-          { value: "electric_vehicle", label: "Electric Vehicle", icon: "⚡" },
-          { value: "work_from_home", label: "Work from Home", icon: "🏠" },
-        ],
-      },
-      {
-        id: 2,
-        question: "What is your daily commute distance (one way)?",
-        field: "commuteDistance",
-        type: "single_choice",
-        options: [
-          { value: "less_than_5km", label: "Less than 5 km", icon: "📍" },
-          { value: "five_to_15km", label: "5-15 km", icon: "📍" },
-          { value: "fifteen_to_30km", label: "15-30 km", icon: "📍" },
-          { value: "more_than_30km", label: "More than 30 km", icon: "📍" },
-        ],
-      },
-      {
-        id: 3,
-        question: "What best describes your diet?",
-        field: "dietType",
-        type: "single_choice",
-        options: [
-          { value: "vegan", label: "Vegan (No animal products)", icon: "🌱" },
-          { value: "vegetarian", label: "Vegetarian", icon: "🥬" },
-          {
-            value: "pescatarian",
-            label: "Pescatarian (Fish only)",
-            icon: "🐟",
+          options: [
+            { value: "petrol", label: "Petrol", icon: "⛽" },
+            { value: "diesel", label: "Diesel", icon: "🛢️" },
+            { value: "cng", label: "CNG", icon: "🔥" },
+            { value: "electric", label: "Electric (EV)", icon: "⚡" },
+            { value: "hybrid", label: "Hybrid", icon: "🔋" },
+            { value: "not_sure", label: "Not Sure", icon: "❓" },
+          ],
+        },
+        {
+          id: "transport_3",
+          question: "How do you usually charge your EV?",
+          field: "evChargingSource",
+          type: "single_choice",
+          condition: { field: "fuelType", values: ["electric"] },
+          options: [
+            {
+              value: "home_grid",
+              label: "At home (grid electricity)",
+              icon: "🏠",
+            },
+            {
+              value: "public_stations",
+              label: "At public charging stations",
+              icon: "🔌",
+            },
+            {
+              value: "renewable",
+              label: "Mostly with solar/renewable source",
+              icon: "☀️",
+            },
+            { value: "not_sure", label: "Not sure", icon: "❓" },
+          ],
+        },
+        {
+          id: "transport_4",
+          question: "On average, how far do you travel per day (total)?",
+          field: "dailyDistance",
+          type: "single_choice",
+          options: [
+            { value: "0_5km", label: "0–5 km", icon: "📍" },
+            { value: "6_15km", label: "6–15 km", icon: "📍" },
+            { value: "16_30km", label: "16–30 km", icon: "📍" },
+            { value: "31_50km", label: "31–50 km", icon: "📍" },
+            { value: "51plus_km", label: "51+ km", icon: "📍" },
+          ],
+        },
+        {
+          id: "transport_5",
+          question: "How many people usually travel with you?",
+          field: "passengers",
+          type: "single_choice",
+          options: [
+            { value: "alone", label: "I travel alone", icon: "👤" },
+            { value: "one_passenger", label: "One passenger", icon: "👥" },
+            {
+              value: "two_plus_passengers",
+              label: "Two or more passengers",
+              icon: "👨‍👩‍👧‍👦",
+            },
+            {
+              value: "shared_public",
+              label: "It's shared/public transport",
+              icon: "🚌",
+            },
+          ],
+        },
+        {
+          id: "transport_6",
+          question: "Approximately how many flights do you take per year?",
+          field: "flightsPerYear",
+          type: "single_choice",
+          options: [
+            { value: "0", label: "0", icon: "🚫" },
+            { value: "1_2", label: "1–2", icon: "✈️" },
+            { value: "3_5", label: "3–5", icon: "🛫" },
+            { value: "6plus", label: "6+", icon: "🌍" },
+          ],
+        },
+        {
+          id: "transport_7",
+          question: "What is your vehicle's approximate mileage (if known)?",
+          field: "mileage",
+          type: "single_choice",
+          condition: {
+            field: "primaryMode",
+            values: ["personal_car", "two_wheeler"],
           },
-          {
-            value: "occasional_meat",
-            label: "Occasional Meat Eater",
-            icon: "🍖",
-          },
-          { value: "regular_meat", label: "Regular Meat Eater", icon: "🥩" },
-          { value: "heavy_meat", label: "Heavy Meat Consumer", icon: "🍗" },
-        ],
-      },
-      {
-        id: 4,
-        question: "What is your home size?",
-        field: "homeSize",
-        type: "single_choice",
-        options: [
-          { value: "studio_1bhk", label: "Studio/1 BHK", icon: "🏠" },
-          { value: "two_bhk", label: "2 BHK", icon: "🏡" },
-          { value: "three_bhk", label: "3 BHK", icon: "🏘️" },
-          { value: "four_plus_bhk", label: "4+ BHK", icon: "🏰" },
-          {
-            value: "independent_house",
-            label: "Independent House",
-            icon: "🏛️",
-          },
-        ],
-      },
-      {
-        id: 5,
-        question: "How many hours do you use AC daily?",
-        field: "acUsage",
-        type: "single_choice",
-        options: [
-          { value: "no_ac", label: "No AC", icon: "🌿" },
-          { value: "less_than_2hrs", label: "Less than 2 hours", icon: "❄️" },
-          { value: "two_to_4hrs", label: "2-4 hours", icon: "🧊" },
-          { value: "four_to_6hrs", label: "4-6 hours", icon: "🌨️" },
-          { value: "six_to_8hrs", label: "6-8 hours", icon: "🥶" },
-          { value: "more_than_8hrs", label: "More than 8 hours", icon: "❄️💨" },
-        ],
-      },
-      {
-        id: 6,
-        question: "How many hours do you spend on digital devices daily?",
-        field: "digitalUsage",
-        type: "single_choice",
-        options: [
-          { value: "less_than_2hrs", label: "Less than 2 hours", icon: "📱" },
-          { value: "two_to_4hrs", label: "2-4 hours", icon: "💻" },
-          { value: "four_to_6hrs", label: "4-6 hours", icon: "🖥️" },
-          { value: "six_to_8hrs", label: "6-8 hours", icon: "⌨️" },
-          { value: "eight_to_10hrs", label: "8-10 hours", icon: "📺" },
-          { value: "more_than_10hrs", label: "More than 10 hours", icon: "🔌" },
-        ],
-      },
-      {
-        id: 7,
-        question: "How would you describe your shopping habits?",
-        field: "shoppingFrequency",
-        type: "single_choice",
-        options: [
-          {
-            value: "minimal_necessary",
-            label: "Minimal - Only necessities",
-            icon: "🛒",
-          },
-          {
-            value: "monthly_planned",
-            label: "Monthly planned shopping",
-            icon: "📝",
-          },
-          {
-            value: "weekly_regular",
-            label: "Weekly regular shopping",
-            icon: "🗓️",
-          },
-          {
-            value: "frequent_impulse",
-            label: "Frequent impulse buying",
-            icon: "💳",
-          },
-          { value: "daily_shopping", label: "Daily shopping", icon: "🛍️" },
-        ],
-      },
-      {
-        id: 8,
-        question: "How conscious are you about water usage?",
-        field: "waterUsage",
-        type: "single_choice",
-        options: [
-          {
-            value: "very_conscious",
-            label: "Very conscious - Quick showers, reuse water",
-            icon: "💧",
-          },
-          {
-            value: "moderately_conscious",
-            label: "Moderately conscious",
-            icon: "🚿",
-          },
-          { value: "average_usage", label: "Average usage", icon: "🏊" },
-          { value: "above_average", label: "Above average usage", icon: "🛁" },
-          {
-            value: "high_usage",
-            label: "High usage - Long showers, etc.",
-            icon: "🌊",
-          },
-        ],
-      },
-      {
-        id: 9,
-        question: "How do you manage household waste?",
-        field: "wasteManagement",
-        type: "single_choice",
-        options: [
-          {
-            value: "comprehensive_recycling",
-            label: "Comprehensive recycling & composting",
-            icon: "♻️",
-          },
-          {
-            value: "basic_segregation",
-            label: "Basic waste segregation",
-            icon: "🗂️",
-          },
-          {
-            value: "minimal_effort",
-            label: "Minimal recycling effort",
-            icon: "🗑️",
-          },
-          {
-            value: "no_segregation",
-            label: "No waste segregation",
-            icon: "🚮",
-          },
-        ],
-      },
-      {
-        id: 10,
-        question: "How much food do you typically waste?",
-        field: "foodWaste",
-        type: "single_choice",
-        options: [
-          {
-            value: "zero_waste",
-            label: "Zero waste - Finish everything",
-            icon: "✅",
-          },
-          { value: "minimal_waste", label: "Minimal waste", icon: "🥄" },
-          {
-            value: "occasional_waste",
-            label: "Occasional food waste",
-            icon: "🍽️",
-          },
-          { value: "regular_waste", label: "Regular food waste", icon: "🗑️" },
-          {
-            value: "significant_waste",
-            label: "Significant food waste",
-            icon: "❌",
-          },
-        ],
-      },
-      {
-        id: 11,
-        question: "How often do you travel by air?",
-        field: "airTravel",
-        type: "single_choice",
-        options: [
-          { value: "never", label: "Never/Rarely", icon: "🚫" },
-          { value: "once_yearly", label: "Once a year", icon: "✈️" },
-          { value: "twice_yearly", label: "Twice a year", icon: "🛫" },
-          { value: "quarterly", label: "Every 3 months", icon: "🌍" },
-          { value: "monthly", label: "Monthly", icon: "🛩️" },
-          { value: "frequent_flyer", label: "Frequent flyer", icon: "🌎" },
-        ],
-      },
-      {
-        id: 12,
-        question: "What type of energy does your home primarily use?",
-        field: "energySource",
-        type: "single_choice",
-        options: [
-          {
-            value: "renewable_solar",
-            label: "Renewable (Solar panels)",
-            icon: "☀️",
-          },
-          {
-            value: "mix_renewable",
-            label: "Mix of renewable sources",
-            icon: "🌱",
-          },
-          {
-            value: "grid_efficient",
-            label: "Efficient grid electricity",
-            icon: "⚡",
-          },
-          {
-            value: "standard_grid",
-            label: "Standard grid electricity",
-            icon: "🔌",
-          },
-          { value: "coal_heavy", label: "Coal-heavy electricity", icon: "🏭" },
-        ],
-      },
-      {
-        id: 13,
-        question: "How often do you buy new clothes?",
-        field: "clothingPurchases",
-        type: "single_choice",
-        options: [
-          {
-            value: "minimal_sustainable",
-            label: "Minimal - Sustainable brands only",
-            icon: "👕",
-          },
-          { value: "need_based", label: "Only when needed", icon: "🛒" },
-          {
-            value: "seasonal_shopping",
-            label: "Seasonal shopping",
-            icon: "🌸",
-          },
-          {
-            value: "regular_fashion",
-            label: "Regular fashion updates",
-            icon: "👗",
-          },
-          {
-            value: "frequent_fashion",
-            label: "Frequent fast fashion",
-            icon: "🛍️",
-          },
-        ],
-      },
-      {
-        id: 14,
-        question: "How do you typically exercise or stay fit?",
-        field: "fitnessActivities",
-        type: "single_choice",
-        options: [
-          {
-            value: "outdoor_natural",
-            label: "Outdoor activities (running, cycling)",
-            icon: "🏃",
-          },
-          { value: "home_workouts", label: "Home workouts", icon: "🏠" },
-          {
-            value: "local_gym_walk",
-            label: "Local gym (walking distance)",
-            icon: "🏋️",
-          },
-          { value: "gym_commute", label: "Gym requiring commute", icon: "🚗" },
-          {
-            value: "fitness_travel",
-            label: "Fitness activities requiring travel",
-            icon: "🚙",
-          },
-        ],
-      },
-      {
-        id: 15,
-        question: "How would you rate your household appliance usage?",
-        field: "applianceUsage",
-        type: "single_choice",
-        options: [
-          {
-            value: "energy_efficient_minimal",
-            label: "Energy-efficient & minimal use",
-            icon: "💡",
-          },
-          {
-            value: "efficient_moderate",
-            label: "Efficient appliances, moderate use",
-            icon: "🔧",
-          },
-          {
-            value: "standard_usage",
-            label: "Standard appliances, normal use",
-            icon: "🏠",
-          },
-          {
-            value: "high_usage",
-            label: "High usage of appliances",
-            icon: "⚡",
-          },
-          {
-            value: "excessive_usage",
-            label: "Excessive appliance usage",
-            icon: "🔌",
-          },
-        ],
-      },
-    ];
+          options: [
+            { value: "low", label: "<10 km/l (low)", icon: "📉" },
+            { value: "average", label: "10–15 km/l (average)", icon: "📊" },
+            { value: "good", label: "16–25 km/l (good)", icon: "📈" },
+            { value: "excellent", label: "25+ km/l or EV", icon: "⚡" },
+            { value: "not_sure", label: "Not sure", icon: "❓" },
+          ],
+        },
+      ],
+      diet: [
+        {
+          id: "diet_1",
+          question: "On average, how many meals do you eat per day?",
+          field: "mealsPerDay",
+          type: "single_choice",
+          options: [
+            { value: 1, label: "1", icon: "🍽️" },
+            { value: 2, label: "2", icon: "🍽️🍽️" },
+            { value: 3, label: "3", icon: "🍽️🍽️🍽️" },
+            { value: 4, label: "4+", icon: "🍽️+" },
+          ],
+        },
+        {
+          id: "diet_2a",
+          question:
+            "What percentage of your meals consist of meat-based meals?",
+          field: "meatPercentage",
+          type: "slider",
+          min: 0,
+          max: 100,
+          step: 5,
+          unit: "%",
+          description: "Beef, chicken, mutton, fish",
+        },
+        {
+          id: "diet_2b",
+          question:
+            "What percentage of your meals consist of dairy & egg-based meals?",
+          field: "dairyPercentage",
+          type: "slider",
+          min: 0,
+          max: 100,
+          step: 5,
+          unit: "%",
+          description: "Milk, paneer, cheese, yogurt, eggs",
+        },
+        {
+          id: "diet_2c",
+          question:
+            "What percentage of your meals consist of plant-based meals?",
+          field: "plantPercentage",
+          type: "slider",
+          min: 0,
+          max: 100,
+          step: 5,
+          unit: "%",
+          description: "Grains, pulses, vegetables, fruits, nuts",
+        },
+        {
+          id: "diet_3",
+          question: "How often do you eat outside or order food online?",
+          field: "orderedMealsFreq",
+          type: "single_choice",
+          options: [
+            { value: "never", label: "Never", icon: "🚫" },
+            { value: "1_2_week", label: "1–2 meals per week", icon: "🍕" },
+            { value: "3_5_week", label: "3–5 meals per week", icon: "🍔" },
+            { value: "6_9_week", label: "6–9 meals per week", icon: "🛍️" },
+            { value: "10_15_week", label: "10–15 meals per week", icon: "📦" },
+            { value: "16_20_week", label: "16–20 meals per week", icon: "🚚" },
+            {
+              value: "20plus_week",
+              label: "More than 20 meals per week",
+              icon: "🔥",
+            },
+          ],
+        },
+        {
+          id: "diet_4",
+          question: "How often do you eat processed, packaged, or junk food?",
+          field: "junkFoodFreq",
+          type: "single_choice",
+          options: [
+            { value: "daily", label: "Daily", icon: "🍟" },
+            { value: "few_times_week", label: "Few times a week", icon: "🥤" },
+            { value: "occasionally", label: "Occasionally", icon: "🍿" },
+            { value: "rarely_never", label: "Rarely/Never", icon: "🥗" },
+          ],
+        },
+        {
+          id: "diet_5",
+          question: "How often do you waste food at home?",
+          field: "foodWaste",
+          type: "single_choice",
+          options: [
+            { value: "never", label: "Never", icon: "✅" },
+            { value: "rarely", label: "Rarely", icon: "🟢" },
+            { value: "sometimes", label: "Sometimes", icon: "🟡" },
+            { value: "often", label: "Often", icon: "🔴" },
+          ],
+        },
+      ],
+      electricity: [
+        {
+          id: "electricity_1a",
+          question:
+            "What is your average monthly electricity usage in kilowatt-hours (kWh)?",
+          field: "monthlyKwh",
+          type: "number_input",
+          placeholder: "Enter kWh (check your electricity bill)",
+          min: 0,
+          max: 2000,
+        },
+        {
+          id: "electricity_1b",
+          question: "Or choose an estimate if you're not sure:",
+          field: "monthlyKwhEstimate",
+          type: "single_choice",
+          options: [
+            { value: "less_100", label: "Less than 100 kWh", icon: "💡" },
+            { value: "100_200", label: "100–200 kWh", icon: "🏠" },
+            { value: "200_400", label: "200–400 kWh", icon: "🏡" },
+            { value: "400_600", label: "400–600 kWh", icon: "🏘️" },
+            { value: "600plus", label: "600+ kWh", icon: "🏭" },
+          ],
+        },
+        {
+          id: "electricity_2",
+          question: "How many people live in your household (including you)?",
+          field: "householdSize",
+          type: "single_choice",
+          options: [
+            { value: 1, label: "1", icon: "👤" },
+            { value: 2, label: "2", icon: "👥" },
+            { value: 3, label: "3", icon: "👨‍👩‍👧" },
+            { value: 4, label: "4+", icon: "👨‍👩‍👧‍👦" },
+          ],
+        },
+        {
+          id: "electricity_3",
+          question:
+            "How many hours per day do you typically spend at home (awake)?",
+          field: "timeAtHome",
+          type: "single_choice",
+          options: [
+            { value: "4_hours_less", label: "4 hours or less", icon: "⏰" },
+            { value: "5_8_hours", label: "5–8 hours", icon: "🕐" },
+            { value: "9_12_hours", label: "9–12 hours", icon: "🕒" },
+            { value: "12plus_hours", label: "More than 12 hours", icon: "🕕" },
+          ],
+        },
+        {
+          id: "electricity_4",
+          question: "Which appliances do you regularly use at home?",
+          field: "appliances",
+          type: "multi_select",
+          options: [
+            { value: "air_conditioner", label: "Air Conditioner", icon: "❄️" },
+            { value: "geyser", label: "Geyser/Water Heater", icon: "🚿" },
+            { value: "refrigerator", label: "Refrigerator", icon: "🧊" },
+            { value: "washing_machine", label: "Washing Machine", icon: "👕" },
+            { value: "microwave", label: "Microwave", icon: "📡" },
+            {
+              value: "laptop_desktop",
+              label: "Laptop/Desktop (4+ hrs/day)",
+              icon: "💻",
+            },
+            { value: "tv_console", label: "TV or Game Console", icon: "📺" },
+          ],
+        },
+        {
+          id: "electricity_5",
+          question:
+            "Do you use renewable energy (solar/green electricity) at home?",
+          field: "renewableEnergy",
+          type: "single_choice",
+          options: [
+            {
+              value: "mostly_renewable",
+              label: "Yes, mostly renewable",
+              icon: "☀️",
+            },
+            {
+              value: "partially_renewable",
+              label: "Partially renewable",
+              icon: "🌱",
+            },
+            { value: "no_renewable", label: "No", icon: "🔌" },
+            { value: "not_sure", label: "Not sure", icon: "❓" },
+          ],
+        },
+      ],
+      lifestyle: [
+        {
+          id: "lifestyle_1",
+          question:
+            "How much time do you spend on screens per day (phone, laptop, TV, etc.)?",
+          field: "screenTime",
+          type: "single_choice",
+          options: [
+            { value: "less_2hrs", label: "Less than 2 hours", icon: "📱" },
+            { value: "2_4hrs", label: "2–4 hours", icon: "💻" },
+            { value: "4_6hrs", label: "4–6 hours", icon: "🖥️" },
+            { value: "6plus_hrs", label: "More than 6 hours", icon: "📺" },
+          ],
+        },
+        {
+          id: "lifestyle_2",
+          question:
+            "How often do you shop for non-essential items (gadgets, fashion, gifts)?",
+          field: "nonEssentialShopping",
+          type: "single_choice",
+          options: [
+            { value: "weekly", label: "Weekly", icon: "🛍️" },
+            {
+              value: "few_times_month",
+              label: "Few times a month",
+              icon: "🛒",
+            },
+            { value: "monthly", label: "Once a month", icon: "📅" },
+            { value: "rarely_never", label: "Rarely/Never", icon: "🚫" },
+          ],
+        },
+        {
+          id: "lifestyle_3",
+          question:
+            "How often do you buy clothes, shoes, or fashion accessories?",
+          field: "fashionShopping",
+          type: "single_choice",
+          options: [
+            {
+              value: "more_once_month",
+              label: "More than once a month",
+              icon: "👗",
+            },
+            {
+              value: "every_1_2_months",
+              label: "Once every 1–2 months",
+              icon: "👕",
+            },
+            {
+              value: "every_3plus_months",
+              label: "Once every 3+ months",
+              icon: "👖",
+            },
+            { value: "rarely_never", label: "Rarely/Never", icon: "🚫" },
+          ],
+        },
+        {
+          id: "lifestyle_4",
+          question: "How many online orders do you receive per month?",
+          field: "onlineOrders",
+          type: "single_choice",
+          options: [
+            { value: "0", label: "0", icon: "🚫" },
+            { value: "1_5", label: "1–5", icon: "📦" },
+            { value: "6_10", label: "6–10", icon: "📦📦" },
+            { value: "11_15", label: "11–15", icon: "📦📦📦" },
+            { value: "15plus", label: "15+", icon: "🚚" },
+          ],
+        },
+        {
+          id: "lifestyle_5",
+          question: "How do you manage household waste?",
+          field: "wasteManagement",
+          type: "single_choice",
+          options: [
+            {
+              value: "recycle_compost",
+              label: "Mostly recycle and compost",
+              icon: "♻️",
+            },
+            {
+              value: "recycle_some",
+              label: "Recycle some, throw some",
+              icon: "🗂️",
+            },
+            {
+              value: "throw_everything",
+              label: "Throw everything together",
+              icon: "🗑️",
+            },
+            { value: "not_sure", label: "Not sure", icon: "❓" },
+          ],
+        },
+      ],
+    };
 
     return res.status(200).json({
       questions,
-      totalQuestions: questions.length,
-      message: "Onboarding questions retrieved successfully",
+      totalQuestions: Object.values(questions).flat().length,
+      message: "Comprehensive onboarding questions retrieved successfully",
     });
   } catch (error) {
     console.error("getOnboardingQuestions error:", error);
@@ -357,35 +425,77 @@ export const getOnboardingQuestions = async (req, res) => {
   }
 };
 
-// Validate onboarding responses
+// Validate onboarding responses for new structure
 const validateOnboardingData = (onboardingData) => {
-  const requiredFields = [
-    "primaryTransport",
-    "commuteDistance",
-    "dietType",
-    "homeSize",
-    "acUsage",
-    "digitalUsage",
-    "shoppingFrequency",
-    "waterUsage",
-    "wasteManagement",
-    "foodWaste",
-    "airTravel",
-    "energySource",
-    "clothingPurchases",
-    "fitnessActivities",
-    "applianceUsage",
-  ];
+  const requiredFields = {
+    transport: ["primaryMode", "dailyDistance", "passengers", "flightsPerYear"],
+    diet: [
+      "mealsPerDay",
+      "meatPercentage",
+      "dairyPercentage",
+      "plantPercentage",
+      "orderedMealsFreq",
+      "junkFoodFreq",
+      "foodWaste",
+    ],
+    electricity: [
+      "householdSize",
+      "timeAtHome",
+      "appliances",
+      "renewableEnergy",
+    ],
+    lifestyle: [
+      "screenTime",
+      "nonEssentialShopping",
+      "fashionShopping",
+      "onlineOrders",
+      "wasteManagement",
+    ],
+  };
 
-  const missingFields = requiredFields.filter(
-    (field) => !onboardingData[field]
-  );
+  // Check if we have monthly kWh or estimate
+  const hasElectricityUsage =
+    onboardingData.monthlyKwh || onboardingData.monthlyKwhEstimate;
+  if (!hasElectricityUsage) {
+    requiredFields.electricity.push("monthlyKwhEstimate");
+  }
+
+  // Check conditional fields
+  if (["personal_car", "two_wheeler"].includes(onboardingData.primaryMode)) {
+    requiredFields.transport.push("fuelType");
+    if (onboardingData.fuelType === "electric") {
+      requiredFields.transport.push("evChargingSource");
+    }
+  }
+
+  const missingFields = [];
+  for (const [category, fields] of Object.entries(requiredFields)) {
+    for (const field of fields) {
+      if (!onboardingData[field] && onboardingData[field] !== 0) {
+        missingFields.push(`${category}.${field}`);
+      }
+    }
+  }
 
   if (missingFields.length > 0) {
     return {
       isValid: false,
       missingFields,
       message: `Missing required fields: ${missingFields.join(", ")}`,
+    };
+  }
+
+  // Validate diet percentages add up to 100%
+  const totalDietPercentage =
+    (onboardingData.meatPercentage || 0) +
+    (onboardingData.dairyPercentage || 0) +
+    (onboardingData.plantPercentage || 0);
+
+  if (Math.abs(totalDietPercentage - 100) > 5) {
+    // Allow 5% tolerance
+    return {
+      isValid: false,
+      message: "Diet percentages must add up to approximately 100%",
     };
   }
 
@@ -412,25 +522,82 @@ export const submitOnboarding = async (req, res) => {
       });
     }
 
+    // Structure data for new carbon logic
+    const profileData = {
+      transport: {
+        primaryMode: onboardingData.primaryMode,
+        fuelType: onboardingData.fuelType,
+        evChargingSource: onboardingData.evChargingSource,
+        dailyDistance: onboardingData.dailyDistance,
+        passengers: onboardingData.passengers,
+        flightsPerYear: onboardingData.flightsPerYear,
+        mileage: onboardingData.mileage,
+      },
+      diet: {
+        mealsPerDay: onboardingData.mealsPerDay,
+        meatPercentage: onboardingData.meatPercentage || 0,
+        dairyPercentage: onboardingData.dairyPercentage || 0,
+        plantPercentage: onboardingData.plantPercentage || 0,
+        orderedMealsFreq: onboardingData.orderedMealsFreq,
+        junkFoodFreq: onboardingData.junkFoodFreq,
+        foodWaste: onboardingData.foodWaste,
+      },
+      electricity: {
+        monthlyKwh: onboardingData.monthlyKwh,
+        monthlyKwhEstimate: onboardingData.monthlyKwhEstimate,
+        householdSize: onboardingData.householdSize,
+        timeAtHome: onboardingData.timeAtHome,
+        appliances: onboardingData.appliances || [],
+        renewableEnergy: onboardingData.renewableEnergy,
+      },
+      lifestyle: {
+        screenTime: onboardingData.screenTime,
+        nonEssentialShopping: onboardingData.nonEssentialShopping,
+        fashionShopping: onboardingData.fashionShopping,
+        onlineOrders: onboardingData.onlineOrders,
+        wasteManagement: onboardingData.wasteManagement,
+      },
+    };
+
+    // Sanitize data - remove undefined values that Firestore can't handle
+    const sanitizeForFirestore = (obj) => {
+      const sanitized = {};
+      for (const [key, value] of Object.entries(obj)) {
+        if (value !== undefined && value !== null) {
+          if (typeof value === 'object' && !Array.isArray(value)) {
+            const sanitizedNested = sanitizeForFirestore(value);
+            if (Object.keys(sanitizedNested).length > 0) {
+              sanitized[key] = sanitizedNested;
+            }
+          } else {
+            sanitized[key] = value;
+          }
+        }
+      }
+      return sanitized;
+    };
+
+    const sanitizedProfileData = sanitizeForFirestore(profileData);
+
     // Save onboarding profile
     const onboardingRef = admin
       .firestore()
       .doc(`users/${uid}/onboardingProfile/data`);
     await onboardingRef.set({
-      ...onboardingData,
+      ...sanitizedProfileData,
       completedAt: FieldValue.serverTimestamp(),
-      version: "1.0", // Track onboarding version
-      questionsCompleted: 15,
+      version: "2.0", // Updated version for new structure
+      questionsCompleted: Object.values(sanitizedProfileData).flat().length,
     });
 
-    // Calculate baseline carbon footprint
-    const carbonFootprint = calculateCarbonFootprint(onboardingData);
+    // Calculate baseline carbon footprint using new logic
+    const carbonFootprint = calculateCarbonFootprint(profileData);
     const carbonData = {
-      totalCarbonFootprint: carbonFootprint,
+      totalCarbonFootprint: carbonFootprint.total,
+      breakdown: carbonFootprint.breakdown,
       calculatedAt: FieldValue.serverTimestamp(),
       unit: "kg CO2e per day",
-      breakdown: generateCarbonBreakdown(onboardingData),
-      category: getCarbonCategory(carbonFootprint),
+      category: getCarbonCategory(carbonFootprint.total),
     };
 
     // Save to main user document or carbonProfile
@@ -460,80 +627,18 @@ export const submitOnboarding = async (req, res) => {
       message: "Onboarding completed successfully!",
       carbonData,
       gamificationBonus: 50,
-      recommendations: generateRecommendations(onboardingData, carbonFootprint),
+      recommendations: generateRecommendations(
+        profileData,
+        carbonFootprint.total
+      ),
     });
   } catch (error) {
     console.error("submitOnboarding error:", error);
-    return res.status(500).json({ error: "Failed to save onboarding data." });
+    return res.status(500).json({ 
+      error: "Failed to save onboarding data.",
+      details: error.message
+    });
   }
-};
-
-// Helper function to generate carbon breakdown
-const generateCarbonBreakdown = (onboardingData) => {
-  const breakdown = {};
-  const carbonEmissionMapping = {
-    primaryTransport: {
-      car_daily: 8.5,
-      public_transport: 2.3,
-      bike_scooter: 1.2,
-      walking: 0.0,
-      electric_vehicle: 3.1,
-      work_from_home: 0.0,
-    },
-    commuteDistance: {
-      less_than_5km: 1.0,
-      five_to_15km: 2.5,
-      fifteen_to_30km: 4.2,
-      more_than_30km: 6.8,
-    },
-    dietType: {
-      vegan: 1.5,
-      vegetarian: 2.3,
-      pescatarian: 3.2,
-      occasional_meat: 4.1,
-      regular_meat: 5.8,
-      heavy_meat: 7.2,
-    },
-    homeSize: {
-      studio_1bhk: 0.8,
-      two_bhk: 1.5,
-      three_bhk: 2.2,
-      four_plus_bhk: 3.1,
-      independent_house: 4.0,
-    },
-    acUsage: {
-      no_ac: 0.0,
-      less_than_2hrs: 1.2,
-      two_to_4hrs: 2.8,
-      four_to_6hrs: 4.2,
-      six_to_8hrs: 5.6,
-      more_than_8hrs: 7.3,
-    },
-  };
-
-  for (const [key, value] of Object.entries(onboardingData)) {
-    if (carbonEmissionMapping[key] && carbonEmissionMapping[key][value]) {
-      breakdown[key] = {
-        value,
-        emission: carbonEmissionMapping[key][value],
-        percentage: 0, // Will be calculated after total
-      };
-    }
-  }
-
-  // Calculate percentages
-  const total = Object.values(breakdown).reduce(
-    (sum, item) => sum + item.emission,
-    0
-  );
-  Object.keys(breakdown).forEach((key) => {
-    breakdown[key].percentage = (
-      (breakdown[key].emission / total) *
-      100
-    ).toFixed(1);
-  });
-
-  return breakdown;
 };
 
 // Helper function to categorize carbon footprint
@@ -545,10 +650,11 @@ const getCarbonCategory = (carbonFootprint) => {
 };
 
 // Helper function to generate personalized recommendations
-const generateRecommendations = (onboardingData, carbonFootprint) => {
+const generateRecommendations = (profileData, carbonFootprint) => {
   const recommendations = [];
 
-  if (onboardingData.primaryTransport === "car_daily") {
+  // Transport recommendations
+  if (profileData.transport.primaryMode === "personal_car") {
     recommendations.push({
       category: "Transportation",
       suggestion:
@@ -557,22 +663,18 @@ const generateRecommendations = (onboardingData, carbonFootprint) => {
     });
   }
 
-  if (
-    onboardingData.dietType === "heavy_meat" ||
-    onboardingData.dietType === "regular_meat"
-  ) {
+  // Diet recommendations
+  if ((profileData.diet.meatPercentage || 0) > 50) {
     recommendations.push({
       category: "Diet",
       suggestion:
-        "Try 'Meat-free Monday' or reduce meat consumption by 1-2 meals per week",
+        "Try reducing meat consumption by 20-30% and increase plant-based meals",
       potentialSaving: "1-3 kg CO2e per day",
     });
   }
 
-  if (
-    onboardingData.acUsage === "more_than_8hrs" ||
-    onboardingData.acUsage === "six_to_8hrs"
-  ) {
+  // Electricity recommendations
+  if (profileData.electricity.appliances?.includes("air_conditioner")) {
     recommendations.push({
       category: "Energy",
       suggestion:
@@ -581,7 +683,8 @@ const generateRecommendations = (onboardingData, carbonFootprint) => {
     });
   }
 
-  if (onboardingData.wasteManagement === "no_segregation") {
+  // Lifestyle recommendations
+  if (profileData.lifestyle.wasteManagement === "throw_everything") {
     recommendations.push({
       category: "Waste",
       suggestion:
@@ -607,46 +710,34 @@ export const getOnboardingProgress = async (req, res) => {
       return res.status(200).json({
         isCompleted: false,
         progress: 0,
-        totalQuestions: 15,
+        totalQuestions: 25, // Updated total for new structure
         completedQuestions: 0,
         nextQuestion: 1,
       });
     }
 
     const onboardingData = onboardingDoc.data();
-    const requiredFields = [
-      "primaryTransport",
-      "commuteDistance",
-      "dietType",
-      "homeSize",
-      "acUsage",
-      "digitalUsage",
-      "shoppingFrequency",
-      "waterUsage",
-      "wasteManagement",
-      "foodWaste",
-      "airTravel",
-      "energySource",
-      "clothingPurchases",
-      "fitnessActivities",
-      "applianceUsage",
-    ];
 
-    const completedFields = requiredFields.filter(
-      (field) => onboardingData[field]
+    // Check completion based on new structure
+    const requiredSections = ["transport", "diet", "electricity", "lifestyle"];
+    const completedSections = requiredSections.filter(
+      (section) =>
+        onboardingData[section] &&
+        Object.keys(onboardingData[section]).length > 0
     );
-    const completedQuestions = completedFields.length;
-    const totalQuestions = requiredFields.length;
+
+    const completedQuestions = completedSections.length * 6; // Approximate
+    const totalQuestions = 25;
     const progress = Math.round((completedQuestions / totalQuestions) * 100);
-    const isCompleted = completedQuestions === totalQuestions;
+    const isCompleted = completedSections.length === requiredSections.length;
 
     return res.status(200).json({
       isCompleted,
       progress,
       totalQuestions,
       completedQuestions,
-      nextQuestion: isCompleted ? null : completedQuestions + 1,
-      completedFields,
+      nextQuestion: isCompleted ? null : completedSections.length + 1,
+      completedSections,
       lastUpdated: onboardingData.completedAt || onboardingData.lastUpdated,
     });
   } catch (error) {

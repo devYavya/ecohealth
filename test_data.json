@@ -1,0 +1,33 @@
+{
+  "primaryMode": "personal_car",
+  "fuelType": "petrol",
+  "dailyDistance": "51plus_km",
+  "passengers": "alone",
+  "flightsPerYear": "6plus",
+  "mileage": "low",
+  "mealsPerDay": 4,
+  "meatPercentage": 70,
+  "dairyPercentage": 20,
+  "plantPercentage": 10,
+  "orderedMealsFreq": "16_20_week",
+  "junkFoodFreq": "daily",
+  "foodWaste": "often",
+  "monthlyKwh": 800,
+  "householdSize": 1,
+  "timeAtHome": "12plus_hours",
+  "appliances": [
+    "air_conditioner",
+    "geyser",
+    "refrigerator",
+    "washing_machine",
+    "microwave",
+    "laptop_desktop",
+    "tv_console"
+  ],
+  "renewableEnergy": "no_renewable",
+  "screenTime": "6plus_hrs",
+  "nonEssentialShopping": "weekly",
+  "fashionShopping": "more_once_month",
+  "onlineOrders": "15plus",
+  "wasteManagement": "throw_everything"
+}

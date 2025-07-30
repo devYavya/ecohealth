@@ -81,6 +81,12 @@ export default router;
  *               bloodGroup:
  *                 type: string
  *                 example: B+
+ *               role:
+ *                 type: string
+ *                 enum: [user, admin]
+ *                 default: user
+ *                 description: User role (defaults to 'user', 'admin' only allowed for specific emails)
+ *                 example: user
  *     responses:
  *       201:
  *         description: Signup successful

@@ -30,7 +30,8 @@ export const createUser = async (
   name,
   age,
   gender,
-  bloodGroup
+  bloodGroup,
+  role = "user"
 ) => {
   const firestore = admin.firestore();
 
@@ -46,6 +47,7 @@ export const createUser = async (
     uid: userRecord.uid,
     email,
     name,
+    role, // Default to "user", can be "admin"
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
     lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
   };

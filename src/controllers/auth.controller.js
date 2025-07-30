@@ -14,9 +14,8 @@ dotenv.config();
 
 export const signup = async (req, res, next) => {
   try {
-    const { email, password, name, age, gender, bloodGroup } = req.body;
+    const { email, password, name, age, gender, bloodGroup, role } = req.body;
 
-    
     const existingUser = await checkUserExists(email);
     if (existingUser) {
       return sendErrorResponse(
@@ -26,13 +25,22 @@ export const signup = async (req, res, next) => {
       );
     }
 
+    // Default role to "user" if not provided, only allow "admin" for specific emails
+    const userRole = role === "admin" && isAdminEmail(email) ? "admin" : "user";
+    console.log(
+      `🔑 Role assignment: requested="${role}", email="${email}", isAdminEmail="${isAdminEmail(
+        email
+      )}", finalRole="${userRole}"`
+    );
+
     const user = await createUser(
       email,
       password,
       name,
       age,
       gender,
-      bloodGroup
+      bloodGroup,
+      userRole
     );
 
     return sendSuccessResponse(
@@ -43,6 +51,7 @@ export const signup = async (req, res, next) => {
         uid: user.uid,
         email: user.email,
         name: user.displayName,
+        role: userRole,
         profileComplete: !!(age && gender && bloodGroup),
       }
     );
@@ -52,10 +61,25 @@ export const signup = async (req, res, next) => {
   }
 };
 
+// Helper function to check if email is allowed to be admin
+const isAdminEmail = (email) => {
+  const adminEmails = [
+    process.env.ADMIN_EMAIL,
+    "admin@ecohealth.com",
+    "devyavya@gmail.com",
+    "user1@example.com", // Added for testing
+    "test@admin.com", // Add more test admin emails here
+  ];
+  console.log(
+    `🔍 Checking if ${email} is admin email:`,
+    adminEmails.includes(email)
+  );
+  return adminEmails.includes(email);
+};
+
 export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
-
 
     const userExists = await checkUserExists(email);
     if (!userExists) {
@@ -72,7 +96,6 @@ export const login = async (req, res, next) => {
     );
     const user = await getUserByEmail(email);
 
-    
     const profileComplete = !!(
       user.name &&
       user.age &&
@@ -90,13 +113,13 @@ export const login = async (req, res, next) => {
         age: user.age,
         gender: user.gender,
         bloodGroup: user.bloodGroup,
+        role: user.role || "user", // Include role in response
         profilePictureUrl: user.profilePictureUrl || null,
         profileComplete,
       },
     });
   } catch (error) {
     console.error("Login failed:", error.message);
-
 
     if (error.message.includes("Firebase sign-in failed")) {
       return sendErrorResponse(res, 401, "Invalid email or password.");
@@ -113,11 +136,9 @@ export const socialLogin = async (req, res, next) => {
     const decoded = await admin.auth().verifyIdToken(idToken);
     const { email, uid } = decoded;
 
-   
     const existingUser = await checkUserExists(email);
 
     if (existingUser && existingUser.uid !== uid) {
-     
       return sendErrorResponse(
         res,
         409,
@@ -132,12 +153,12 @@ export const socialLogin = async (req, res, next) => {
 
     let user = await getUserByEmail(email);
 
-   
     if (!user) {
       const userData = {
         uid,
         email,
         name: decoded.name || decoded.email.split("@")[0],
+        role: "user", // Default role for social login
         profileComplete: false,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -163,6 +184,7 @@ export const socialLogin = async (req, res, next) => {
         age: user.age || null,
         gender: user.gender || null,
         bloodGroup: user.bloodGroup || null,
+        role: user.role || "user", // Include role in response
         profilePictureUrl: user.profilePictureUrl || null,
         profileComplete,
       },
@@ -194,10 +216,8 @@ export const sendPasswordResetEmail = async (req, res, next) => {
   try {
     const { email } = req.body;
 
- 
     const userExists = await checkUserExists(email);
     if (!userExists) {
-      
       return sendSuccessResponse(
         res,
         200,
@@ -251,7 +271,6 @@ export const sendPasswordResetEmail = async (req, res, next) => {
     console.error("❌ Password reset failed:", error.message);
 
     if (error.code === "auth/user-not-found") {
-      
       return sendSuccessResponse(
         res,
         200,
@@ -296,7 +315,6 @@ export const refreshToken = async (req, res, next) => {
 };
 
 export const logout = async (req, res) => {
- 
   return sendSuccessResponse(
     res,
     200,
