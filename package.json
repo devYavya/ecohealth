@@ -7,7 +7,14 @@
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "seed:challenges": "node scripts/seedChallenges.js",
-    "seed:onboarding": "node src/scripts/seedOnboardingData.js"
+    "seed:onboarding": "node src/scripts/seedOnboardingData.js",
+    "tips:generate": "node scripts/dailyTipsMaintenance.js generate",
+    "tips:maintenance": "node scripts/dailyTipsMaintenance.js maintenance",
+    "tips:health": "node scripts/dailyTipsMaintenance.js health",
+    "tips:cleanup": "node scripts/dailyTipsMaintenance.js cleanup",
+    "tips:test": "node scripts/testTipGeneration.js",
+    "tips:test-random": "node scripts/testTipRandomization.js",
+    "tips:test-automation": "node scripts/testAutomation.js"
   },
   "author": "ecohealth",
   "license": "ISC",
@@ -27,6 +34,7 @@
     "joi": "^17.13.3",
     "morgan": "^1.10.0",
     "multer": "^2.0.1",
+    "node-cron": "^3.0.3",
     "nodemailer": "^7.0.5",
     "openai": "^5.9.0",
     "sharp": "^0.34.3",

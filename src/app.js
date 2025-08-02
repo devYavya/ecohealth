@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import { setupSwaggerDocs } from "./config/swagger.js";
 import morgan from "morgan";
 import { admin } from "./config/firebase.js";
+import schedulerService from "./services/scheduler.service.js";
 admin;
 
 import authRoutes from "./routes/auth.routes.js";
@@ -37,7 +38,7 @@ app.use("/api/onboarding", onboardingRoutes);
 app.use("/api/daily-logs", dailyLogsRoutes);
 // app.use("/api/carbon", carbonRoutes);
 // app.use("/api/tips", tipsRoutes);
-app.use("/api/ai-tip", aiTipsRoutes);
+app.use("/api/ai-tips", aiTipsRoutes);
 // app.use("/api/gamification", gamificationRoutes);
 app.use("/api/feed", socialFeedRoutes);
 app.use("/api/challenges", challengesRoutes);
@@ -45,5 +46,22 @@ app.use("/api/admin", adminRoutes);
 
 // Error handler
 app.use(errorHandler);
+
+// Start automated scheduled jobs
+console.log("🤖 Initializing AI Tips Automation...");
+schedulerService.startScheduledJobs();
+
+// Graceful shutdown handler
+process.on("SIGTERM", () => {
+  console.log("SIGTERM received, stopping scheduled jobs...");
+  schedulerService.stopAllJobs();
+  process.exit(0);
+});
+
+process.on("SIGINT", () => {
+  console.log("SIGINT received, stopping scheduled jobs...");
+  schedulerService.stopAllJobs();
+  process.exit(0);
+});
 
 export default app;

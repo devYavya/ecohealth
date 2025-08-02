@@ -1,5 +1,6 @@
 import { admin } from "../config/firebase.js";
 import { sendSuccessResponse, sendErrorResponse } from "../utils/response.js";
+import schedulerService from "../services/scheduler.service.js";
 
 const FieldValue = admin.firestore.FieldValue;
 
@@ -338,5 +339,141 @@ export const getAdminLogs = async (req, res) => {
   } catch (error) {
     console.error("Get admin logs error:", error);
     return sendErrorResponse(res, 500, "Failed to retrieve admin logs");
+  }
+};
+
+// Get scheduler status (Admin only)
+export const getSchedulerStatus = async (req, res) => {
+  try {
+    const jobsStatus = schedulerService.getJobsStatus();
+    const nextRunTimes = schedulerService.getNextRunTimes();
+
+    return sendSuccessResponse(
+      res,
+      200,
+      "Scheduler status retrieved successfully",
+      {
+        status: "running",
+        jobs: jobsStatus,
+        nextRuns: nextRunTimes,
+        timestamp: new Date().toISOString(),
+      }
+    );
+  } catch (error) {
+    console.error("Get scheduler status error:", error);
+    return sendErrorResponse(res, 500, "Failed to retrieve scheduler status");
+  }
+};
+
+// Manually trigger daily tips generation (Admin only)
+export const triggerDailyTipsGeneration = async (req, res) => {
+  try {
+    const adminUid = req.admin.uid;
+    const adminEmail = req.admin.email;
+
+    // Log the manual trigger for audit purposes
+    await admin.firestore().collection("admin_logs").add({
+      action: "MANUAL_TIPS_GENERATION",
+      adminUid,
+      adminEmail,
+      timestamp: FieldValue.serverTimestamp(),
+      details: "Manual trigger of daily tips generation",
+    });
+
+    // Trigger the generation
+    await schedulerService.triggerDailyGeneration();
+
+    return sendSuccessResponse(
+      res,
+      200,
+      "Daily tips generation triggered successfully",
+      {
+        triggeredBy: adminEmail,
+        triggeredAt: new Date().toISOString(),
+      }
+    );
+  } catch (error) {
+    console.error("Trigger daily tips generation error:", error);
+    return sendErrorResponse(
+      res,
+      500,
+      "Failed to trigger daily tips generation"
+    );
+  }
+};
+
+// Get automation health status (Admin only)
+export const getAutomationHealth = async (req, res) => {
+  try {
+    const schedulerStatus = schedulerService.getJobsStatus();
+    const nextRuns = schedulerService.getNextRunTimes();
+
+    // Check if we have tips for today
+    const dailyTipsCollection = admin.firestore().collection("dailyTipsPool");
+    const today = new Date().toISOString().split("T")[0];
+    const todayTipsSnapshot = await dailyTipsCollection.doc(today).get();
+
+    const hasTodayTips =
+      todayTipsSnapshot.exists && todayTipsSnapshot.data()?.tips?.length >= 20;
+
+    // Check recent user tip assignments
+    const userTipsCollection = admin.firestore().collection("userDailyTips");
+    const recentUserTipsSnapshot = await userTipsCollection
+      .where("date", "==", today)
+      .limit(5)
+      .get();
+
+    const hasRecentUserTips = !recentUserTipsSnapshot.empty;
+
+    const healthStatus = {
+      overall: "healthy",
+      issues: [],
+      scheduler: {
+        running: schedulerStatus.every((job) => job.running),
+        jobs: schedulerStatus,
+      },
+      dailyTips: {
+        available: hasTodayTips,
+        count: todayTipsSnapshot.exists
+          ? todayTipsSnapshot.data()?.tips?.length || 0
+          : 0,
+        date: today,
+      },
+      userTips: {
+        hasRecentAssignments: hasRecentUserTips,
+        recentCount: recentUserTipsSnapshot.size,
+      },
+      nextRuns,
+    };
+
+    // Determine overall health
+    if (!hasTodayTips) {
+      healthStatus.overall = "warning";
+      healthStatus.issues.push("No tips available for today");
+    }
+
+    if (!schedulerStatus.every((job) => job.running)) {
+      healthStatus.overall = "error";
+      healthStatus.issues.push("Some scheduled jobs are not running");
+    }
+
+    if (!hasRecentUserTips && hasTodayTips) {
+      healthStatus.overall = "warning";
+      healthStatus.issues.push("No recent user tip assignments found");
+    }
+
+    return sendSuccessResponse(
+      res,
+      200,
+      "Automation health status retrieved",
+      healthStatus
+    );
+  } catch (error) {
+    console.error("Get automation health error:", error);
+    return sendErrorResponse(
+      res,
+      500,
+      "Failed to retrieve automation health status"
+    );
   }
 };

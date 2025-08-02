@@ -7,6 +7,9 @@ import {
   deleteUser,
   updateUserRole,
   getAdminLogs,
+  getSchedulerStatus,
+  triggerDailyTipsGeneration,
+  getAutomationHealth,
 } from "../controllers/admin.controller.js";
 
 const router = express.Router();
@@ -360,5 +363,149 @@ router.put("/users/:userId/role", verifyToken, verifyAdmin, updateUserRole);
  *         description: Server error
  */
 router.get("/logs", verifyToken, verifyAdmin, getAdminLogs);
+
+/**
+ * @swagger
+ * /api/admin/scheduler/status:
+ *   get:
+ *     summary: Get scheduler status (Admin only)
+ *     tags: [Admin - Automation]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Scheduler status retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     status:
+ *                       type: string
+ *                       example: "running"
+ *                     jobs:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           name:
+ *                             type: string
+ *                           schedule:
+ *                             type: string
+ *                           running:
+ *                             type: boolean
+ *                           scheduled:
+ *                             type: boolean
+ *                     nextRuns:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           name:
+ *                             type: string
+ *                           nextRun:
+ *                             type: string
+ */
+router.get("/scheduler/status", verifyToken, verifyAdmin, getSchedulerStatus);
+
+/**
+ * @swagger
+ * /api/admin/tips/generate-now:
+ *   post:
+ *     summary: Manually trigger daily tips generation (Admin only)
+ *     tags: [Admin - Automation]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Daily tips generation triggered successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Daily tips generation triggered successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     triggeredBy:
+ *                       type: string
+ *                     triggeredAt:
+ *                       type: string
+ *                       format: date-time
+ */
+router.post(
+  "/tips/generate-now",
+  verifyToken,
+  verifyAdmin,
+  triggerDailyTipsGeneration
+);
+
+/**
+ * @swagger
+ * /api/admin/automation/health:
+ *   get:
+ *     summary: Get automation health status (Admin only)
+ *     tags: [Admin - Automation]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Automation health status retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     overall:
+ *                       type: string
+ *                       enum: [healthy, warning, error]
+ *                       example: "healthy"
+ *                     issues:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                     scheduler:
+ *                       type: object
+ *                       properties:
+ *                         running:
+ *                           type: boolean
+ *                         jobs:
+ *                           type: array
+ *                     dailyTips:
+ *                       type: object
+ *                       properties:
+ *                         available:
+ *                           type: boolean
+ *                         count:
+ *                           type: integer
+ *                         date:
+ *                           type: string
+ *                     userTips:
+ *                       type: object
+ *                       properties:
+ *                         hasRecentAssignments:
+ *                           type: boolean
+ *                         recentCount:
+ *                           type: integer
+ */
+router.get("/automation/health", verifyToken, verifyAdmin, getAutomationHealth);
 
 export default router;
