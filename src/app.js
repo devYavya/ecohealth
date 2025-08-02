@@ -13,7 +13,7 @@ import dailyLogsRoutes from "./routes/dailyLogs.routes.js";
 // import carbonRoutes from "./routes/carbon.routes.js";
 // import tipsRoutes from "./routes/tips.routes.js";
 import aiTipsRoutes from "./routes/aiTips.routes.js";
-import gamificationRoutes from "./routes/gamification.routes.js";
+// import gamificationRoutes from "./routes/gamification.routes.js";
 import socialFeedRoutes from "./routes/socialFeed.routes.js";
 import challengesRoutes from "./routes/challenges.routes.js";
 import adminRoutes from "./routes/admin.routes.js";

@@ -20,25 +20,59 @@ const uploadImage = async (fileBuffer, postId, mimeType) => {
     // Compress image using sharp
     const compressedBuffer = await sharp(fileBuffer)
       .resize(1080, 1080, {
-        fit: 'inside',
-        withoutEnlargement: true
+        fit: "inside",
+        withoutEnlargement: true,
       })
       .jpeg({
         quality: 80,
-        progressive: true
+        progressive: true,
       })
       .toBuffer();
 
     const file = bucket.file(`posts_images/${postId}.jpg`);
     await file.save(compressedBuffer, {
-      metadata: { contentType: 'image/jpeg' },
+      metadata: { contentType: "image/jpeg" },
       public: true,
       validation: "md5",
     });
 
     return `https://storage.googleapis.com/${bucket.name}/posts_images/${postId}.jpg`;
   } catch (error) {
-    console.error('Image compression/upload error:', error);
+    console.error("Image compression/upload error:", error);
+    throw error;
+  }
+};
+
+// Utility to compress and upload comment image to Firebase Storage
+const uploadCommentImage = async (fileBuffer, commentId, mimeType) => {
+  try {
+    // Check file size (max 10MB for comments)
+    if (fileBuffer.length > 10 * 1024 * 1024) {
+      throw new Error("Image size exceeds 10MB limit for comments");
+    }
+
+    // Compress image using sharp
+    const compressedBuffer = await sharp(fileBuffer)
+      .resize(800, 800, {
+        fit: "inside",
+        withoutEnlargement: true,
+      })
+      .jpeg({
+        quality: 75,
+        progressive: true,
+      })
+      .toBuffer();
+
+    const file = bucket.file(`comment_images/${commentId}.jpg`);
+    await file.save(compressedBuffer, {
+      metadata: { contentType: "image/jpeg" },
+      public: true,
+      validation: "md5",
+    });
+
+    return `https://storage.googleapis.com/${bucket.name}/comment_images/${commentId}.jpg`;
+  } catch (error) {
+    console.error("Comment image compression/upload error:", error);
     throw error;
   }
 };
@@ -56,26 +90,26 @@ const uploadVideo = async (fileBuffer, postId, originalMimeType) => {
     // Compress video using ffmpeg
     await new Promise((resolve, reject) => {
       ffmpeg(inputPath)
-        .videoCodec('libx264')
-        .audioCodec('aac')
-        .size('720x?') // Max width 720px, maintain aspect ratio
-        .videoBitrate('1000k') // 1 Mbps
-        .audioBitrate('128k')
+        .videoCodec("libx264")
+        .audioCodec("aac")
+        .size("720x?") // Max width 720px, maintain aspect ratio
+        .videoBitrate("1000k") // 1 Mbps
+        .audioBitrate("128k")
         .duration(30) // Limit to 30 seconds
-        .format('mp4')
-        .on('end', resolve)
-        .on('error', reject)
+        .format("mp4")
+        .on("end", resolve)
+        .on("error", reject)
         .save(outputPath);
     });
 
     // Read compressed video file
-    const { readFile } = await import('fs/promises');
+    const { readFile } = await import("fs/promises");
     const compressedBuffer = await readFile(outputPath);
 
     // Upload to Firebase Storage
     const file = bucket.file(`posts_videos/${postId}.mp4`);
     await file.save(compressedBuffer, {
-      metadata: { contentType: 'video/mp4' },
+      metadata: { contentType: "video/mp4" },
       public: true,
       validation: "md5",
     });
@@ -83,7 +117,7 @@ const uploadVideo = async (fileBuffer, postId, originalMimeType) => {
     // Clean up temporary files
     await Promise.all([
       unlinkAsync(inputPath).catch(console.warn),
-      unlinkAsync(outputPath).catch(console.warn)
+      unlinkAsync(outputPath).catch(console.warn),
     ]);
 
     return `https://storage.googleapis.com/${bucket.name}/posts_videos/${postId}.mp4`;
@@ -91,9 +125,9 @@ const uploadVideo = async (fileBuffer, postId, originalMimeType) => {
     // Clean up temporary files on error
     await Promise.all([
       unlinkAsync(inputPath).catch(() => {}),
-      unlinkAsync(outputPath).catch(() => {})
+      unlinkAsync(outputPath).catch(() => {}),
     ]);
-    console.error('Video compression/upload error:', error);
+    console.error("Video compression/upload error:", error);
     throw error;
   }
 };
@@ -101,24 +135,26 @@ const uploadVideo = async (fileBuffer, postId, originalMimeType) => {
 // Utility to handle media upload (image or video)
 const uploadMedia = async (file, postId) => {
   const { buffer, mimetype } = file;
-  
+
   // Check file size (max 50MB)
   if (buffer.length > 50 * 1024 * 1024) {
-    throw new Error('File size exceeds 50MB limit');
+    throw new Error("File size exceeds 50MB limit");
   }
 
-  if (mimetype.startsWith('image/')) {
+  if (mimetype.startsWith("image/")) {
     return {
       url: await uploadImage(buffer, postId, mimetype),
-      type: 'image'
+      type: "image",
     };
-  } else if (mimetype.startsWith('video/')) {
+  } else if (mimetype.startsWith("video/")) {
     return {
       url: await uploadVideo(buffer, postId, mimetype),
-      type: 'video'
+      type: "video",
     };
   } else {
-    throw new Error('Unsupported file type. Only images and videos are allowed.');
+    throw new Error(
+      "Unsupported file type. Only images and videos are allowed."
+    );
   }
 };
 
@@ -145,8 +181,8 @@ export const createPost = async (req, res) => {
         mediaType = mediaResult.type;
       } catch (uploadError) {
         console.error("Media upload error:", uploadError);
-        return res.status(400).json({ 
-          message: uploadError.message || "Failed to upload media" 
+        return res.status(400).json({
+          message: uploadError.message || "Failed to upload media",
         });
       }
     }
@@ -167,18 +203,18 @@ export const createPost = async (req, res) => {
     if (profilePictureUrl !== undefined)
       postData.userProfilePictureUrl = profilePictureUrl;
     if (mediaUrl !== null) {
-      if (mediaType === 'image') {
+      if (mediaType === "image") {
         postData.imageUrl = mediaUrl;
-      } else if (mediaType === 'video') {
+      } else if (mediaType === "video") {
         postData.videoUrl = mediaUrl;
       }
       postData.mediaType = mediaType;
     }
 
     await db.collection("posts").doc(postId).set(postData);
-    return res.status(201).json({ 
-      message: "Post created successfully", 
-      post: postData 
+    return res.status(201).json({
+      message: "Post created successfully",
+      post: postData,
     });
   } catch (error) {
     console.error("createPost error:", error);
@@ -408,7 +444,42 @@ export const getPostComments = async (req, res) => {
     }
 
     const snapshot = await query.get();
-    const comments = snapshot.docs.map((doc) => doc.data());
+    const comments = [];
+
+    // Fetch user details for each comment
+    for (const doc of snapshot.docs) {
+      const commentData = doc.data();
+
+      // Fetch commenter's name and profile picture
+      let userName = "Unknown User";
+      let userProfilePicture = null;
+
+      if (commentData.userId) {
+        try {
+          const userDoc = await db
+            .collection("users")
+            .doc(commentData.userId)
+            .get();
+          if (userDoc.exists) {
+            const userData = userDoc.data();
+            userName =
+              userData.name || userData.displayName || "Anonymous User";
+            userProfilePicture =
+              userData.profilePictureUrl || userData.photoURL || null;
+          }
+        } catch (userError) {
+          console.error("Error fetching commenter data:", userError);
+          // Keep default values if user fetch fails
+        }
+      }
+
+      comments.push({
+        ...commentData,
+        userName,
+        userProfilePicture,
+        commentId: doc.id, // Include document ID for pagination
+      });
+    }
 
     return res.status(200).json({
       comments,
@@ -500,7 +571,7 @@ export const deletePost = async (req, res) => {
       postContent: postData.textContent?.substring(0, 100) + "...", // First 100 chars
       deletedAt: admin.firestore.FieldValue.serverTimestamp(),
       commentsDeleted: commentsSnapshot.size,
-      mediaType: postData.mediaType || (postData.imageUrl ? 'image' : null),
+      mediaType: postData.mediaType || (postData.imageUrl ? "image" : null),
     });
 
     return res.status(200).json({
