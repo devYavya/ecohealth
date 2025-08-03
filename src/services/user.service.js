@@ -16,8 +16,7 @@ export const checkUserExists = async (email) => {
 
 export const linkSocialAccount = async (existingUid, socialIdToken) => {
   try {
-    // This would implement account linking logic
-    // For now, we'll throw an error to indicate it needs manual handling
+
     throw new Error("Account linking requires user confirmation");
   } catch (error) {
     throw error;
@@ -42,7 +41,7 @@ export const createUser = async (
     displayName: name,
   });
 
-  // Prepare Firestore user data (exclude password in production)
+ 
   const userData = {
     uid: userRecord.uid,
     email,

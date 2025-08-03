@@ -173,19 +173,6 @@ const router = express.Router();
 
 router.post("/submit", verifyToken, submitDailyLog);
 
-// TEST ENDPOINT - Remove in production
-router.post("/test-submit", async (req, res) => {
-  try {
-    // Mock user for testing
-    req.user = { uid: "test-user-123" };
-    await submitDailyLog(req, res);
-  } catch (error) {
-    res.status(500).json({
-      error: "Test endpoint error",
-      details: error.message,
-    });
-  }
-});
 
 /**
  * @swagger
@@ -226,7 +213,7 @@ router.get("/weekly-summary", verifyToken, getWeeklySummary);
  */
 router.get("/:date", verifyToken, getDailyLog);
 
-// Debug endpoint - remove in production
+// Endpoint to get all daily logs 
 router.get("/debug/all", verifyToken, getAllDailyLogs);
 
 export default router;
