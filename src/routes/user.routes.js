@@ -9,6 +9,7 @@ import {
 import {
   uploadProfilePicture,
   uploadMiddleware,
+  handleUploadErrors,
 } from "../controllers/upload.controller.js";
 import {
   verifyToken,
@@ -235,6 +236,7 @@ router.post(
   generalLimiter,
   verifyToken,
   uploadMiddleware,
+  handleUploadErrors,
   uploadProfilePicture
 );
 

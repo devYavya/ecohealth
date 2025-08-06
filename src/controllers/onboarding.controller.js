@@ -564,7 +564,7 @@ export const submitOnboarding = async (req, res) => {
       const sanitized = {};
       for (const [key, value] of Object.entries(obj)) {
         if (value !== undefined && value !== null) {
-          if (typeof value === 'object' && !Array.isArray(value)) {
+          if (typeof value === "object" && !Array.isArray(value)) {
             const sanitizedNested = sanitizeForFirestore(value);
             if (Object.keys(sanitizedNested).length > 0) {
               sanitized[key] = sanitizedNested;
@@ -617,7 +617,6 @@ export const submitOnboarding = async (req, res) => {
         ecoPoints: 50, // Bonus points for completing onboarding
         level: 1,
         totalChallengesCompleted: 0,
-        streakDays: 0,
         createdAt: FieldValue.serverTimestamp(),
         lastUpdated: FieldValue.serverTimestamp(),
       });
@@ -634,9 +633,9 @@ export const submitOnboarding = async (req, res) => {
     });
   } catch (error) {
     console.error("submitOnboarding error:", error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       error: "Failed to save onboarding data.",
-      details: error.message
+      details: error.message,
     });
   }
 };
@@ -766,17 +765,121 @@ export const getDashboardData = async (req, res) => {
       carbonRef.get(),
     ]);
 
+    // Get recent challenge completions for updated points calculation
+    const challengesCollection = admin
+      .firestore()
+      .collection("users")
+      .doc(uid)
+      .collection("challenges");
+
+    // Get completed challenges
+    const completedChallengesSnapshot = await challengesCollection
+      .where("isCompleted", "==", true)
+      .get();
+
+    // Get active challenges
+    const activeChallengesSnapshot = await challengesCollection
+      .where("isCompleted", "==", false)
+      .get();
+
+    // Calculate total points from completed challenges
+    let totalChallengePoints = 0;
+    const recentCompletedChallenges = [];
+
+    completedChallengesSnapshot.forEach((doc) => {
+      const challengeData = doc.data();
+      if (challengeData.pointsEarned) {
+        totalChallengePoints += challengeData.pointsEarned;
+      }
+      recentCompletedChallenges.push({
+        id: doc.id,
+        name: challengeData.challengeName,
+        pointsEarned: challengeData.pointsEarned || 0,
+        completedAt: challengeData.completedAt,
+        badgeEarned: challengeData.badgeEarned,
+      });
+    });
+
+    // Get current gamification data
+    const gamificationData = gamificationDoc.exists
+      ? gamificationDoc.data()
+      : {
+          ecoPoints: 0,
+          level: 1,
+          badges: [],
+          totalChallengesCompleted: 0,
+        };
+
+    // Calculate updated eco points including challenge rewards
+    const baseEcoPoints = gamificationData.ecoPoints || 0;
+    const updatedEcoPoints = baseEcoPoints; // Challenges already add points to gamification
+
+    // Calculate current level based on total points
+    const currentLevel = Math.floor(updatedEcoPoints / 100) + 1;
+
     const dashboardData = {
       name: userDoc.exists ? userDoc.data().name : null,
       profilePictureUrl: userDoc.exists
         ? userDoc.data().profilePictureUrl
         : null,
-      ecoPoints: gamificationDoc.exists ? gamificationDoc.data().ecoPoints : 0,
-      level: gamificationDoc.exists ? gamificationDoc.data().level : 1,
+      ecoPoints: updatedEcoPoints,
+      level: currentLevel,
+      badges: gamificationData.badges || [],
       baselineCarbonFootprint: carbonDoc.exists ? carbonDoc.data() : null,
+
+      // Enhanced dashboard data
+      challengeStats: {
+        totalCompleted: recentCompletedChallenges.length,
+        totalActive: activeChallengesSnapshot.size,
+        totalPointsFromChallenges: totalChallengePoints,
+        recentCompletions: recentCompletedChallenges
+          .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0))
+          .slice(0, 5), // Last 5 completed
+      },
+
+      // Points breakdown
+      pointsBreakdown: {
+        total: updatedEcoPoints,
+        fromChallenges: totalChallengePoints,
+        fromOnboarding: 50, // Onboarding bonus
+        fromDailyLogs: Math.max(
+          0,
+          updatedEcoPoints - totalChallengePoints - 50
+        ),
+      },
+
+      // Current streak and level info
+      streakInfo: gamificationData.streaks || { count: 0, lastDate: null },
+      levelProgress: {
+        currentLevel: currentLevel,
+        pointsInCurrentLevel: updatedEcoPoints % 100,
+        pointsToNextLevel: 100 - (updatedEcoPoints % 100),
+        totalPointsForNextLevel: currentLevel * 100,
+      },
+
+      // Additional active challenges info
+      activeChallenges: [],
     };
 
-    return res.status(200).json({ dashboardData });
+    // Add active challenges details
+    activeChallengesSnapshot.forEach((doc) => {
+      const challengeData = doc.data();
+      dashboardData.activeChallenges.push({
+        id: doc.id,
+        name: challengeData.challengeName,
+        type: challengeData.challengeType,
+        progress: challengeData.progress || 0,
+        duration: challengeData.duration || 1,
+        pointsReward: challengeData.pointsReward || 0,
+        badgeReward: challengeData.badgeReward,
+        lastProgressDate: challengeData.lastProgressDate,
+      });
+    });
+
+    return res.status(200).json({
+      message: "Dashboard data retrieved successfully",
+      dashboardData,
+    });
   } catch (error) {
     console.error("getDashboardData error:", error);
     return res.status(500).json({ error: "Failed to fetch dashboard data." });

@@ -461,7 +461,10 @@ export function calculateCarbonFootprint(onboardingData) {
 
 // Daily log carbon footprint calculation
 export function calculateCarbonFootprintFromDailyLog(dailyLogData) {
-  let dailyCF = 0;
+  let transportCF = 0;
+  let dietCF = 0;
+  let electricityCF = 0;
+  let lifestyleCF = 0;
 
   // Transport daily override
   if (dailyLogData.transport) {
@@ -472,7 +475,7 @@ export function calculateCarbonFootprintFromDailyLog(dailyLogData) {
       if (modeData) {
         const distanceMultiplier =
           transportEmissions.dailyDistance[totalDistance] || 1.0;
-        dailyCF += modeData.base * distanceMultiplier;
+        transportCF += modeData.base * distanceMultiplier;
       }
     }
   }
@@ -485,11 +488,11 @@ export function calculateCarbonFootprintFromDailyLog(dailyLogData) {
     const meatMealsCF = meatMeals * dietEmissions.mealTypes.meat_based;
     const vegMealsCF =
       (mealsToday - meatMeals) * dietEmissions.mealTypes.plant_based;
-    dailyCF += meatMealsCF + vegMealsCF;
+    dietCF += meatMealsCF + vegMealsCF;
 
     // Add delivery CF if ordered food
     if (ateOutside) {
-      dailyCF += dietEmissions.orderedMealsMultiplier;
+      dietCF += dietEmissions.orderedMealsMultiplier;
     }
   }
 
@@ -497,62 +500,67 @@ export function calculateCarbonFootprintFromDailyLog(dailyLogData) {
   if (dailyLogData.electricity) {
     const { acHours, appliances, workedFromHome } = dailyLogData.electricity;
 
-    let dailyElectricityCF = 0;
-
     // AC usage
     if (acHours && acHours !== "0") {
       const acHourMap = { less_2: 1, "2_4": 3, "4plus": 6 };
       const hours = acHourMap[acHours] || 0;
-      dailyElectricityCF += hours * 2.0 * 0.9; // 2kWh per hour * emission factor
+      electricityCF += hours * 2.0 * 0.9; // 2kWh per hour * emission factor
     }
 
     // High power appliances
     if (appliances && Array.isArray(appliances)) {
       appliances.forEach((appliance) => {
         const dailyKwh = (electricityEmissions.appliances[appliance] || 0) / 30;
-        dailyElectricityCF += dailyKwh * 0.9;
+        electricityCF += dailyKwh * 0.9;
       });
     }
 
     // Work from home extra usage
     if (workedFromHome) {
-      dailyElectricityCF += 2.0; // Extra 2kg CO2 for WFH
+      electricityCF += 2.0; // Extra 2kg CO2 for WFH
     }
-
-    dailyCF += dailyElectricityCF;
   }
 
   // Lifestyle daily override
   if (dailyLogData.lifestyle) {
-    const { onlineOrders, screenHours, recycledWaste } = dailyLogData.lifestyle;
-
-    let dailyLifestyleCF = 0;
+    const { onlineOrders, screenTime, wasteSegregation } =
+      dailyLogData.lifestyle;
 
     // Online orders
     if (onlineOrders) {
-      dailyLifestyleCF += 2.0; // 2kg CO2 per order
+      lifestyleCF += 2.0; // 2kg CO2 per order
     }
 
     // Screen time
-    if (screenHours) {
+    if (screenTime) {
       const screenCFMap = {
-        less_2: 0.14,
-        "2_4": 0.28,
-        "4_6": 0.43,
-        "6plus": 0.57,
+        less_than_2: 0.14,
+        "2_to_4": 0.28,
+        "4_to_6": 0.43,
+        "6_plus": 0.57,
       };
-      dailyLifestyleCF += screenCFMap[screenHours] || 0;
+      lifestyleCF += screenCFMap[screenTime] || 0;
     }
 
     // Waste management benefit
-    if (recycledWaste) {
-      dailyLifestyleCF *= 0.8; // 20% reduction for recycling
+    if (wasteSegregation) {
+      lifestyleCF *= 0.8; // 20% reduction for recycling
     }
-
-    dailyCF += dailyLifestyleCF;
   }
 
-  return parseFloat(dailyCF.toFixed(2));
+  const total = parseFloat(
+    (transportCF + dietCF + electricityCF + lifestyleCF).toFixed(2)
+  );
+
+  return {
+    total,
+    breakdown: {
+      transport: parseFloat(transportCF.toFixed(2)),
+      diet: parseFloat(dietCF.toFixed(2)),
+      electricity: parseFloat(electricityCF.toFixed(2)),
+      lifestyle: parseFloat(lifestyleCF.toFixed(2)),
+    },
+  };
 }
 
 export function calculateDailyOverride(userProfile, overrideData) {

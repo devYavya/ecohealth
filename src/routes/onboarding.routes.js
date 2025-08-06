@@ -225,7 +225,7 @@ const router = express.Router();
  * @swagger
  * /api/onboarding/questions:
  *   get:
- *     summary: Get all 15 onboarding questions
+ *     summary: Get all 25 onboarding questions
  *     tags: [Onboarding]
  *     security:
  *       - bearerAuth: []
@@ -655,27 +655,161 @@ router.get("/progress", verifyToken, getOnboardingProgress);
  * @swagger
  * /api/onboarding/dashboard:
  *   get:
- *     summary: Get dashboard carbon footprint data
+ *     summary: Get comprehensive dashboard data including updated eco points
+ *     description: Retrieves user dashboard data including eco points from challenges, daily logs, and detailed gamification statistics
  *     tags: [Onboarding]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: User's onboarding and carbon data
+ *         description: Dashboard data retrieved successfully
  *         content:
  *           application/json:
  *             schema:
  *               type: object
- *               example:
- *                 onboardingAnswers:
- *                   transportMode: "bike"
- *                   dietType: "vegetarian"
- *                   electricityUsage: "4-6_hours_ac"
- *                   digitalHours: "8+_hours"
- *                 carbonFootprint: 8.25
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Dashboard data retrieved successfully"
+ *                 dashboardData:
+ *                   type: object
+ *                   properties:
+ *                     name:
+ *                       type: string
+ *                       example: "Tripansh"
+ *                       description: User's display name
+ *                     profilePictureUrl:
+ *                       type: string
+ *                       nullable: true
+ *                       example: "https://example.com/profile.jpg"
+ *                       description: URL to user's profile picture
+ *                     ecoPoints:
+ *                       type: number
+ *                       example: 125
+ *                       description: Total eco points accumulated by user
+ *                     level:
+ *                       type: number
+ *                       example: 2
+ *                       description: Current user level based on eco points
+ *                     badges:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       example: ["Energy Saver", "Green Commuter"]
+ *                       description: List of badges earned by user
+ *                     baselineCarbonFootprint:
+ *                       type: object
+ *                       nullable: true
+ *                       properties:
+ *                         totalCarbonFootprint:
+ *                           type: number
+ *                           example: 148.23
+ *                         category:
+ *                           type: string
+ *                           example: "Very High Impact"
+ *                         breakdown:
+ *                           type: object
+ *                           description: Carbon footprint breakdown by category
+ *                     challengeStats:
+ *                       type: object
+ *                       properties:
+ *                         totalCompleted:
+ *                           type: number
+ *                           example: 3
+ *                           description: Number of challenges completed
+ *                         totalActive:
+ *                           type: number
+ *                           example: 2
+ *                           description: Number of currently active challenges
+ *                         totalPointsFromChallenges:
+ *                           type: number
+ *                           example: 75
+ *                           description: Total points earned from completed challenges
+ *                         recentCompletions:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               id:
+ *                                 type: string
+ *                                 example: "zero_waste_lifestyle"
+ *                               name:
+ *                                 type: string
+ *                                 example: "Zero Waste Lifestyle"
+ *                               pointsEarned:
+ *                                 type: number
+ *                                 example: 50
+ *                               completedAt:
+ *                                 type: string
+ *                                 format: date-time
+ *                               badgeEarned:
+ *                                 type: string
+ *                                 example: "Eco Warrior"
+ *                           description: List of recently completed challenges
+ *                     pointsBreakdown:
+ *                       type: object
+ *                       properties:
+ *                         total:
+ *                           type: number
+ *                           example: 125
+ *                           description: Total eco points
+ *                         fromChallenges:
+ *                           type: number
+ *                           example: 75
+ *                           description: Points earned from challenges
+ *                         fromOnboarding:
+ *                           type: number
+ *                           example: 50
+ *                           description: Bonus points from completing onboarding
+ *                         fromDailyLogs:
+ *                           type: number
+ *                           example: 0
+ *                           description: Points earned from daily log submissions
+ *                     streakInfo:
+ *                       type: object
+ *                       properties:
+ *                         count:
+ *                           type: number
+ *                           example: 5
+ *                           description: Current streak count
+ *                         lastDate:
+ *                           type: string
+ *                           nullable: true
+ *                           example: "2025-08-05"
+ *                           description: Last date of activity
+ *                     levelProgress:
+ *                       type: object
+ *                       properties:
+ *                         currentLevel:
+ *                           type: number
+ *                           example: 2
+ *                           description: Current user level
+ *                         pointsInCurrentLevel:
+ *                           type: number
+ *                           example: 25
+ *                           description: Points accumulated in current level
+ *                         pointsToNextLevel:
+ *                           type: number
+ *                           example: 75
+ *                           description: Points needed to reach next level
+ *                         totalPointsForNextLevel:
+ *                           type: number
+ *                           example: 200
+ *                           description: Total points required for next level
+ *       401:
+ *         description: Unauthorized - Invalid or missing authentication token
+ *       500:
+ *         description: Server error - Failed to retrieve dashboard data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Failed to fetch dashboard data."
  */
 router.post("/submit", verifyToken, submitOnboarding);
 router.get("/dashboard", verifyToken, getDashboardData);
-
 
 export default router;

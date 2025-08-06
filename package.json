@@ -14,7 +14,9 @@
     "tips:cleanup": "node scripts/dailyTipsMaintenance.js cleanup",
     "tips:test": "node scripts/testTipGeneration.js",
     "tips:test-random": "node scripts/testTipRandomization.js",
-    "tips:test-automation": "node scripts/testAutomation.js"
+    "tips:test-automation": "node scripts/testAutomation.js",
+    "challenges:test-completion": "node scripts/testChallengeCompletion.js",
+    "test:unit": "node scripts/updateChallengesForProfiles.js"
   },
   "author": "ecohealth",
   "license": "ISC",

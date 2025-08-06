@@ -156,76 +156,7 @@ router.patch(
   markTipAsRead
 );
 
-/**
- * @swagger
- * /api/ai-tips/history:
- *   get:
- *     summary: Get user's tip history
- *     description: Retrieve user's past tips
- *     tags: [AI Tips]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           default: 10
- *           minimum: 1
- *           maximum: 50
- *         description: Number of tips to return
- *       - in: query
- *         name: days
- *         schema:
- *           type: integer
- *           default: 7
- *           minimum: 1
- *           maximum: 365
- *         description: Number of days to look back
- *     responses:
- *       200:
- *         description: Tip history retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 message:
- *                   type: string
- *                 data:
- *                   type: object
- *                   properties:
- *                     tips:
- *                       type: array
- *                       items:
- *                         $ref: '#/components/schemas/UserDailyTip'
- *                     totalCount:
- *                       type: integer
- *                     filters:
- *                       type: object
- *       500:
- *         description: Failed to retrieve tip history
- */
-router.get(
-  "/history",
-  verifyToken,
-  [
-    query("limit")
-      .optional()
-      .isInt({ min: 1, max: 50 })
-      .withMessage("Limit must be between 1 and 50"),
-    query("days")
-      .optional()
-      .isInt({ min: 1, max: 365 })
-      .withMessage("Days must be between 1 and 365"),
-  ],
-  validateRequest,
-  getTipHistory
-);
-
-/**
+ /**
  * @swagger
  * /api/ai-tips/pool/today:
  *   get:

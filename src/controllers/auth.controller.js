@@ -133,76 +133,74 @@ export const socialLogin = async (req, res, next) => {
   try {
     const { idToken } = req.body;
 
-    const decoded = await admin.auth().verifyIdToken(idToken);
-    const { email, uid } = decoded;
-
-    const existingUser = await checkUserExists(email);
-
-    if (existingUser && existingUser.uid !== uid) {
-      return sendErrorResponse(
-        res,
-        409,
-        "An account with this email already exists. Would you like to link your accounts?",
-        {
-          accountLinkingRequired: true,
-          existingProvider: "email",
-          newProvider: decoded.firebase.sign_in_provider,
-        }
-      );
+    if (!idToken) {
+      return sendErrorResponse(res, 400, "Firebase ID token is required.");
     }
 
-    let user = await getUserByEmail(email);
+    // ✅ 1. Verify Firebase ID token
+    const decoded = await admin.auth().verifyIdToken(idToken);
+    const { uid, email, name, picture } = decoded;
 
-    if (!user) {
+    // ✅ 2. Get or Create Firebase Auth user
+    let firebaseUser;
+    try {
+      firebaseUser = await admin.auth().getUser(uid);
+    } catch (error) {
+      if (error.code === "auth/user-not-found") {
+        firebaseUser = await admin.auth().createUser({
+          uid,
+          email,
+          displayName: name || email.split("@")[0],
+          photoURL: picture || null,
+          emailVerified: true,
+        });
+      } else {
+        throw error;
+      }
+    }
+
+    // ✅ 3. Firestore User Check/Create
+    const userRef = admin.firestore().collection("users").doc(uid);
+    const userDoc = await userRef.get();
+
+    if (!userDoc.exists) {
       const userData = {
         uid,
         email,
-        name: decoded.name || decoded.email.split("@")[0],
-        role: "user", // Default role for social login
+        name: name || email.split("@")[0],
+        role: "user",
         profileComplete: false,
+        profilePictureUrl: picture || null,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
       };
-
-      await admin.firestore().collection("users").doc(uid).set(userData);
-      user = userData;
+      await userRef.set(userData);
     }
 
-    const profileComplete = !!(
-      user.name &&
-      user.age &&
-      user.gender &&
-      user.bloodGroup
-    );
+    // ✅ 4. Generate Firebase custom token (if using signInWithCustomToken on frontend)
+    const customToken = await admin.auth().createCustomToken(uid);
 
     return sendSuccessResponse(res, 200, "Social login successful!", {
-      token: idToken,
+      firebaseToken: customToken,
       user: {
-        uid: user.uid,
-        email: user.email,
-        name: user.name,
-        age: user.age || null,
-        gender: user.gender || null,
-        bloodGroup: user.bloodGroup || null,
-        role: user.role || "user", // Include role in response
-        profilePictureUrl: user.profilePictureUrl || null,
-        profileComplete,
+        uid,
+        email,
+        name: name || email.split("@")[0],
+        picture: picture || null,
+        provider: decoded.firebase?.sign_in_provider,
       },
     });
   } catch (error) {
-    console.error("Social login failed:", error);
+    console.error("❌ Social login failed:", error.message);
 
     if (error.code === "auth/invalid-id-token") {
-      return sendErrorResponse(
-        res,
-        401,
-        "Invalid or expired token. Please try logging in again."
-      );
+      return sendErrorResponse(res, 401, "Invalid or expired Firebase token.");
     }
 
-    next(error);
+    return next(error);
   }
 };
+
 
 const transporter = nodemailer.createTransport({
   service: "gmail",

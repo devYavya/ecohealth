@@ -10,8 +10,15 @@ import {
   refreshPersonalizedChallenges,
   getApiUsageStats,
   seedDefaultChallenges,
+  getChallengeStats,
+  getChallengeProgress,
+  getBadgesInfo,
+  createChallenge,
+  updateChallenge,
+  deleteChallenge,
 } from "../controllers/challenges.controller.js";
 import { verifyToken } from "../middlewares/auth.middleware.js";
+import { verifyAdmin } from "../middlewares/admin.middleware.js";
 
 const router = express.Router();
 
@@ -237,20 +244,72 @@ const router = express.Router();
  *         description: Unauthorized
  *       500:
  *         description: Internal server error
- */
-router.get("/", verifyToken, getChallenges);
-
-/**
- * @swagger
- * /api/challenges/generate-personalized:
  *   post:
- *     summary: Generate personalized challenges using AI
+ *     summary: Create a new challenge (Admin only)
  *     tags: [Challenges]
  *     security:
  *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - challengeId
+ *               - name
+ *               - description
+ *               - type
+ *               - pointsAwarded
+ *               - badgeAwarded
+ *               - criteria
+ *             properties:
+ *               challengeId:
+ *                 type: string
+ *                 description: Unique identifier for the challenge
+ *                 example: "new_eco_challenge"
+ *               name:
+ *                 type: string
+ *                 description: Challenge name
+ *                 example: "Eco Challenge Week"
+ *               description:
+ *                 type: string
+ *                 description: Challenge description
+ *                 example: "A week-long challenge to reduce your carbon footprint"
+ *               type:
+ *                 type: string
+ *                 enum: [diet, transport, electricity, lifestyle]
+ *                 description: Challenge category
+ *                 example: "lifestyle"
+ *               difficulty:
+ *                 type: string
+ *                 enum: [easy, medium, hard]
+ *                 description: Challenge difficulty level
+ *                 example: "medium"
+ *               duration:
+ *                 type: number
+ *                 description: Challenge duration in days
+ *                 example: 7
+ *               pointsAwarded:
+ *                 type: number
+ *                 description: Points awarded for completing the challenge
+ *                 example: 50
+ *               badgeAwarded:
+ *                 type: string
+ *                 description: Badge awarded for completing the challenge
+ *                 example: "Eco Warrior"
+ *               criteria:
+ *                 type: object
+ *                 description: Specific conditions to check for challenge completion
+ *                 example: { "dailyLogging": true, "carbonReduction": 20 }
+ *               isActive:
+ *                 type: boolean
+ *                 description: Whether the challenge is active
+ *                 default: true
+ *                 example: true
  *     responses:
- *       200:
- *         description: Personalized challenges generated successfully
+ *       201:
+ *         description: Challenge created successfully
  *         content:
  *           application/json:
  *             schema:
@@ -258,251 +317,21 @@ router.get("/", verifyToken, getChallenges);
  *               properties:
  *                 message:
  *                   type: string
- *                   example: "Personalized challenges generated successfully"
- *                 challenges:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Challenge'
- *                 basedOn:
- *                   type: object
- *                   properties:
- *                     carbonFootprint:
- *                       type: number
- *                     recentLogsCount:
- *                       type: number
- *                     profileVersion:
- *                       type: string
+ *                   example: "Challenge created successfully"
+ *                 challenge:
+ *                   $ref: '#/components/schemas/Challenge'
  *       400:
- *         description: User must complete onboarding first
+ *         description: Bad request - Invalid input or challenge already exists
  *       401:
  *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Admin access required
  *       500:
  *         description: Internal server error
  */
-/**
- * @swagger
- * /api/challenges/generate-personalized:
- *   post:
- *     summary: Generate personalized challenges using AI with smart caching
- *     description: |
- *       Generates personalized weekly challenges based on user's onboarding profile and carbon footprint.
- *       Uses smart caching to reduce API costs:
- *       - Returns cached challenges if profile hasn't changed significantly
- *       - Only calls Gemini AI when cache is expired or profile changes >20%
- *       - Automatically falls back to static challenges if AI generation fails
- *     tags: [Challenges]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Personalized challenges generated successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Personalized challenges generated successfully"
- *                 challenges:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       challengeId:
- *                         type: string
- *                         example: "personalized_1643723400000_1"
- *                       name:
- *                         type: string
- *                         example: "Plant-Based Monday Challenge"
- *                       description:
- *                         type: string
- *                         example: "Replace meat-based meals with plant alternatives every Monday"
- *                       type:
- *                         type: string
- *                         enum: [diet, transport, electricity, lifestyle]
- *                         example: "diet"
- *                       difficulty:
- *                         type: string
- *                         enum: [easy, medium, hard]
- *                         example: "medium"
- *                       duration:
- *                         type: number
- *                         example: 7
- *                       pointsAwarded:
- *                         type: number
- *                         example: 30
- *                       badgeAwarded:
- *                         type: string
- *                         example: "Plant Pioneer"
- *                       criteria:
- *                         type: object
- *                         example: { "plantBasedMeals": 4, "meatReduction": "25%" }
- *                       tips:
- *                         type: array
- *                         items:
- *                           type: string
- *                         example: ["Try lentil-based recipes", "Focus on protein-rich alternatives"]
- *                       expectedImpact:
- *                         type: string
- *                         example: "3-5 kg CO2e reduction per week"
- *                       startDate:
- *                         type: string
- *                         format: date-time
- *                       endDate:
- *                         type: string
- *                         format: date-time
- *                       isPersonalized:
- *                         type: boolean
- *                         example: true
- *                 metadata:
- *                   type: object
- *                   properties:
- *                     fromCache:
- *                       type: boolean
- *                       description: Whether challenges were retrieved from cache
- *                       example: true
- *                     cacheAge:
- *                       type: number
- *                       description: Age of cached data in milliseconds
- *                       example: 86400000
- *                     carbonFootprint:
- *                       type: number
- *                       description: User's current carbon footprint
- *                       example: 148.23
- *                     generationMethod:
- *                       type: string
- *                       enum: [cached, ai-generated, fallback]
- *                       example: "cached"
- *       400:
- *         description: User must complete onboarding first
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   example: "User must complete onboarding before generating personalized challenges"
- *       401:
- *         description: Unauthorized
- *       500:
- *         description: Server error (returns fallback challenges)
- */
-router.post(
-  "/generate-personalized",
-  verifyToken,
-  generatePersonalizedChallenges
-);
+router.get("/", verifyToken, getChallenges);
+router.post("/", verifyToken, verifyAdmin, createChallenge);
 
-/**
- * @swagger
- * /api/challenges/refresh-personalized:
- *   post:
- *     summary: Force refresh personalized challenges (bypass cache)
- *     description: |
- *       Forces generation of new personalized challenges using Gemini AI, bypassing the cache.
- *       Use this when users want fresh challenges or when testing new challenge generation logic.
- *       ⚠️ This will consume API credits as it always calls Gemini AI.
- *     tags: [Challenges]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Challenges refreshed successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Challenges refreshed successfully"
- *                 challenges:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/PersonalizedChallenge'
- *                 metadata:
- *                   type: object
- *                   properties:
- *                     fromCache:
- *                       type: boolean
- *                       example: false
- *                     generationMethod:
- *                       type: string
- *                       example: "ai-generated-fresh"
- *                     carbonFootprint:
- *                       type: number
- *                       example: 148.23
- *       400:
- *         description: User must complete onboarding first
- *       401:
- *         description: Unauthorized
- *       500:
- *         description: Failed to refresh challenges
- */
-router.post(
-  "/refresh-personalized",
-  verifyToken,
-  refreshPersonalizedChallenges
-);
-
-/**
- * @swagger
- * /api/challenges/api-usage-stats:
- *   get:
- *     summary: Get AI API usage statistics and cost analysis
- *     description: |
- *       Returns comprehensive statistics about Gemini AI usage for challenge generation.
- *       Useful for monitoring costs and cache efficiency.
- *       📊 Admin endpoint for cost optimization insights.
- *     tags: [Challenges, Analytics]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: API usage statistics retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "API usage statistics retrieved"
- *                 stats:
- *                   type: object
- *                   properties:
- *                     totalUsers:
- *                       type: number
- *                       description: Total users with personalized challenges
- *                       example: 150
- *                     totalApiCalls:
- *                       type: number
- *                       description: Total Gemini API calls made
- *                       example: 45
- *                     averageCallsPerUser:
- *                       type: number
- *                       description: Average API calls per user
- *                       example: 0.3
- *                     estimatedMonthlyCost:
- *                       type: number
- *                       description: Estimated monthly cost in USD
- *                       example: 0.09
- *                     cacheEfficiency:
- *                       type: string
- *                       description: Cache hit rate percentage
- *                       example: "70.0%"
- *       401:
- *         description: Unauthorized
- *       500:
- *         description: Failed to get statistics
- */
-router.get(
-  "/api-usage-stats",
-  verifyToken,
-  getApiUsageStats
-);
 
 /**
  * @swagger
@@ -582,6 +411,383 @@ router.get("/my-challenges", verifyToken, getMyChallenges);
 
 /**
  * @swagger
+ * /api/challenges/stats:
+ *   get:
+ *     summary: Get detailed challenge statistics only
+ *     tags: [Challenges]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Challenge statistics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Challenge statistics retrieved successfully"
+ *                 stats:
+ *                   type: object
+ *                   properties:
+ *                     totalChallenges:
+ *                       type: number
+ *                       example: 5
+ *                     completedChallenges:
+ *                       type: number
+ *                       example: 3
+ *                     activeChallenges:
+ *                       type: number
+ *                       example: 2
+ *                     completionRate:
+ *                       type: string
+ *                       example: "60.0%"
+ *                     totalPointsFromChallenges:
+ *                       type: number
+ *                       example: 150
+ *                     recentAchievements:
+ *                       type: number
+ *                       example: 2
+ *                 recentAchievements:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       name:
+ *                         type: string
+ *                       completedAt:
+ *                         type: string
+ *                         format: date-time
+ *                       pointsEarned:
+ *                         type: number
+ *                       badgeEarned:
+ *                         type: string
+ *                       type:
+ *                         type: string
+ */
+router.get("/stats", verifyToken, getChallengeStats);
+
+/**
+ * @swagger
+ * /api/challenges/badges:
+ *   get:
+ *     summary: Get all available badges and user's earned badges
+ *     tags: [Challenges]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Badges information retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Badges information retrieved successfully"
+ *                 summary:
+ *                   type: object
+ *                   properties:
+ *                     totalAvailableBadges:
+ *                       type: number
+ *                       example: 8
+ *                     earnedBadges:
+ *                       type: number
+ *                       example: 3
+ *                     completionRate:
+ *                       type: string
+ *                       example: "37.5%"
+ *                 availableBadges:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       name:
+ *                         type: string
+ *                         example: "Eco Commuter"
+ *                       challengeName:
+ *                         type: string
+ *                         example: "Public Transport Week"
+ *                       challengeType:
+ *                         type: string
+ *                         example: "transport"
+ *                       difficulty:
+ *                         type: string
+ *                         example: "medium"
+ *                       pointsRequired:
+ *                         type: number
+ *                         example: 40
+ *                 earnedBadges:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       name:
+ *                         type: string
+ *                       challengeName:
+ *                         type: string
+ *                       earnedAt:
+ *                         type: string
+ *                         format: date-time
+ *                       pointsEarned:
+ *                         type: number
+ *                       challengeType:
+ *                         type: string
+ *                 unearnedBadges:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       name:
+ *                         type: string
+ *                       challengeName:
+ *                         type: string
+ *                       challengeType:
+ *                         type: string
+ *                       difficulty:
+ *                         type: string
+ *                       pointsRequired:
+ *                         type: number
+ */
+router.get("/badges", verifyToken, getBadgesInfo);
+
+/**
+ * @swagger
+ * /api/challenges/{challengeId}/progress:
+ *   get:
+ *     summary: Get detailed progress for a specific challenge
+ *     tags: [Challenges]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: challengeId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The challenge ID to get progress for
+ *     responses:
+ *       200:
+ *         description: Challenge progress retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Challenge progress retrieved successfully"
+ *                 challenge:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     name:
+ *                       type: string
+ *                     description:
+ *                       type: string
+ *                     type:
+ *                       type: string
+ *                     difficulty:
+ *                       type: string
+ *                     isCompleted:
+ *                       type: boolean
+ *                     completedAt:
+ *                       type: string
+ *                       format: date-time
+ *                       nullable: true
+ *                     joinedAt:
+ *                       type: string
+ *                       format: date-time
+ *                     endDate:
+ *                       type: string
+ *                       format: date-time
+ *                 progress:
+ *                   type: object
+ *                   properties:
+ *                     current:
+ *                       type: number
+ *                       example: 4
+ *                     target:
+ *                       type: number
+ *                       example: 7
+ *                     percentage:
+ *                       type: string
+ *                       example: "57.1%"
+ *                     daysRemaining:
+ *                       type: number
+ *                       example: 3
+ *                     lastProgressDate:
+ *                       type: string
+ *                       example: "2025-08-01"
+ *                 rewards:
+ *                   type: object
+ *                   properties:
+ *                     pointsAwarded:
+ *                       type: number
+ *                       example: 40
+ *                     badgeAwarded:
+ *                       type: string
+ *                       example: "Eco Commuter"
+ *                     pointsEarned:
+ *                       type: number
+ *                       example: 0
+ *                     badgeEarned:
+ *                       type: string
+ *                       nullable: true
+ *                       example: null
+ *                 criteria:
+ *                   type: object
+ *                   example: { "publicTransport": true, "carbonReduction": 20 }
+ *                 recentActivity:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       date:
+ *                         type: string
+ *                         example: "2025-08-01"
+ *                       contributed:
+ *                         type: boolean
+ *                         example: true
+ *       404:
+ *         description: Challenge not found or user not participating
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/:challengeId/progress", verifyToken, getChallengeProgress);
+
+/**
+ * @swagger
+ * /api/challenges/{challengeId}:
+ *   put:
+ *     summary: Update an existing challenge (Admin only)
+ *     tags: [Challenges]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: challengeId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The challenge ID to update
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Challenge name
+ *                 example: "Updated Eco Challenge Week"
+ *               description:
+ *                 type: string
+ *                 description: Challenge description
+ *                 example: "An updated week-long challenge to reduce your carbon footprint"
+ *               type:
+ *                 type: string
+ *                 enum: [diet, transport, electricity, lifestyle]
+ *                 description: Challenge category
+ *                 example: "lifestyle"
+ *               difficulty:
+ *                 type: string
+ *                 enum: [easy, medium, hard]
+ *                 description: Challenge difficulty level
+ *                 example: "hard"
+ *               duration:
+ *                 type: number
+ *                 description: Challenge duration in days
+ *                 example: 14
+ *               pointsAwarded:
+ *                 type: number
+ *                 description: Points awarded for completing the challenge
+ *                 example: 75
+ *               badgeAwarded:
+ *                 type: string
+ *                 description: Badge awarded for completing the challenge
+ *                 example: "Super Eco Warrior"
+ *               criteria:
+ *                 type: object
+ *                 description: Specific conditions to check for challenge completion
+ *                 example: { "dailyLogging": true, "carbonReduction": 30 }
+ *               isActive:
+ *                 type: boolean
+ *                 description: Whether the challenge is active
+ *                 example: false
+ *     responses:
+ *       200:
+ *         description: Challenge updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Challenge updated successfully"
+ *                 challenge:
+ *                   $ref: '#/components/schemas/Challenge'
+ *       400:
+ *         description: Bad request - Invalid input
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Admin access required
+ *       404:
+ *         description: Challenge not found
+ *       500:
+ *         description: Internal server error
+ *   delete:
+ *     summary: Delete a challenge (Admin only)
+ *     tags: [Challenges]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: challengeId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The challenge ID to delete
+ *     responses:
+ *       200:
+ *         description: Challenge deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Challenge deleted successfully"
+ *                 deletedChallenge:
+ *                   type: object
+ *                   properties:
+ *                     challengeId:
+ *                       type: string
+ *                     name:
+ *                       type: string
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Admin access required
+ *       404:
+ *         description: Challenge not found
+ *       409:
+ *         description: Conflict - Cannot delete challenge with active participants
+ *       500:
+ *         description: Internal server error
+ */
+
+/**
+ * @swagger
  * /api/challenges/{challengeId}/join:
  *   post:
  *     summary: Join a challenge
@@ -655,5 +861,9 @@ router.post("/:challengeId/join", verifyToken, joinChallenge);
  *         description: Internal server error
  */
 router.delete("/:challengeId/leave", verifyToken, leaveChallenge);
+
+// Challenge management routes (Admin)
+router.put("/:challengeId", verifyToken, verifyAdmin, updateChallenge);
+router.delete("/:challengeId", verifyToken, verifyAdmin, deleteChallenge);
 
 export default router;

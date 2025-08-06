@@ -102,7 +102,7 @@ export const getUserStats = async (req, res) => {
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
     const recentUsersSnapshot = await usersCollection
-      .where("createdAt", ">=", FieldValue.serverTimestamp())
+      .where("createdAt", ">=", thirtyDaysAgo)
       .get();
 
     // Calculate monthly growth (simplified)

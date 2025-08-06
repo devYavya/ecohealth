@@ -144,7 +144,7 @@ export default router;
  *         application/json:
  *           schema:
  *             type: object
- *             required: [provider, idToken]
+ *             required: [idToken]
  *             properties:
  *               provider:
  *                 type: string
