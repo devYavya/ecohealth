@@ -606,20 +606,41 @@ export const submitOnboarding = async (req, res) => {
       .doc(`users/${uid}/carbonProfile/baseline`);
     await carbonRef.set(carbonData);
 
-    // Initialize gamification data if first time
+    // Initialize or update gamification data with onboarding bonus
     const gamificationRef = admin
       .firestore()
       .doc(`users/${uid}/gamification/data`);
 
     const gamificationDoc = await gamificationRef.get();
     if (!gamificationDoc.exists) {
+      // First time user - create new gamification data
       await gamificationRef.set({
         ecoPoints: 50, // Bonus points for completing onboarding
+        onboardingBonus: 50,
         level: 1,
         totalChallengesCompleted: 0,
         createdAt: FieldValue.serverTimestamp(),
         lastUpdated: FieldValue.serverTimestamp(),
       });
+    } else {
+      // Existing user - add onboarding bonus to existing points
+      const existingData = gamificationDoc.data();
+
+      // Check if onboarding bonus was already given
+      if (!existingData.onboardingBonus) {
+        await gamificationRef.update({
+          ecoPoints: FieldValue.increment(50),
+          onboardingBonus: 50,
+          lastUpdated: FieldValue.serverTimestamp(),
+        });
+        console.log(
+          `🎉 Added 50 onboarding bonus points to user ${uid}. Total points: ${
+            (existingData.ecoPoints || 0) + 50
+          }`
+        );
+      } else {
+        console.log(`ℹ️ User ${uid} already received onboarding bonus`);
+      }
     }
 
     return res.status(200).json({
@@ -765,6 +786,85 @@ export const getDashboardData = async (req, res) => {
       carbonRef.get(),
     ]);
 
+    // Get current gamification data
+    let gamificationData = gamificationDoc.exists
+      ? gamificationDoc.data()
+      : {
+          ecoPoints: 0,
+          level: 1,
+          badges: [],
+          totalChallengesCompleted: 0,
+        };
+
+    // Validate streak continuity but be less aggressive about breaking streaks
+    if (
+      gamificationData.dailyLogStreak > 0 &&
+      gamificationData.lastDailyLogDate
+    ) {
+      const lastDate = new Date(gamificationData.lastDailyLogDate);
+      const today = new Date();
+      const daysSinceLastLog = Math.floor(
+        (today - lastDate) / (1000 * 60 * 60 * 24)
+      );
+
+      // Only break streaks if they're really stale (more than 2 days)
+      // Let the daily logs controller handle 1-day gaps naturally
+      if (daysSinceLastLog > 2) {
+        // Streak is very stale - reset it
+        console.log(
+          `💔 Streak very stale for user ${uid} (${daysSinceLastLog} days since last log). Resetting streak.`
+        );
+
+        // Save the previous best streak if it was better
+        let updateFields = {
+          dailyLogStreak: 0,
+          lastDailyLogDate: null,
+          streakStartDate: null,
+        };
+
+        if (
+          gamificationData.dailyLogStreak >
+          (gamificationData.previousBestStreak || 0)
+        ) {
+          updateFields.previousBestStreak = gamificationData.dailyLogStreak;
+          console.log(
+            `🏆 Saved new personal best: ${gamificationData.dailyLogStreak} days`
+          );
+        }
+
+        await gamificationRef.update(updateFields);
+
+        // Update our local data
+        gamificationData.dailyLogStreak = 0;
+        gamificationData.lastDailyLogDate = null;
+        gamificationData.streakStartDate = null;
+        if (updateFields.previousBestStreak) {
+          gamificationData.previousBestStreak = updateFields.previousBestStreak;
+        }
+      } else if (
+        !gamificationData.streakStartDate &&
+        gamificationData.dailyLogStreak > 0
+      ) {
+        // Backfill start date for existing streaks
+        const startDate = new Date(lastDate);
+        startDate.setDate(
+          startDate.getDate() - (gamificationData.dailyLogStreak - 1)
+        );
+        const calculatedStartDate = startDate.toISOString().split("T")[0];
+
+        // Update the database with calculated start date
+        await gamificationRef.update({
+          streakStartDate: calculatedStartDate,
+        });
+
+        // Update our local data
+        gamificationData.streakStartDate = calculatedStartDate;
+        console.log(
+          `📅 Backfilled streak start date for user ${uid}: ${calculatedStartDate} (${gamificationData.dailyLogStreak} day streak)`
+        );
+      }
+    }
+
     // Get recent challenge completions for updated points calculation
     const challengesCollection = admin
       .firestore()
@@ -800,15 +900,7 @@ export const getDashboardData = async (req, res) => {
       });
     });
 
-    // Get current gamification data
-    const gamificationData = gamificationDoc.exists
-      ? gamificationDoc.data()
-      : {
-          ecoPoints: 0,
-          level: 1,
-          badges: [],
-          totalChallengesCompleted: 0,
-        };
+    // gamificationData is already defined above with backfill logic
 
     // Calculate updated eco points including challenge rewards
     const baseEcoPoints = gamificationData.ecoPoints || 0;
@@ -848,8 +940,22 @@ export const getDashboardData = async (req, res) => {
         ),
       },
 
-      // Current streak and level info
-      streakInfo: gamificationData.streaks || { count: 0, lastDate: null },
+      // Current streak and level info (with intelligent validation)
+      streakInfo: {
+        count: gamificationData.dailyLogStreak || 0,
+        lastDate: gamificationData.lastDailyLogDate || null,
+        startDate: gamificationData.streakStartDate || null,
+        previousBestStreak: gamificationData.previousBestStreak || 0,
+        streakBadges: gamificationData.streakBadges || [],
+        // Streak is valid if: no streak (0) OR last log was within 2 days
+        isValid:
+          gamificationData.dailyLogStreak === 0 ||
+          (gamificationData.lastDailyLogDate &&
+            Math.floor(
+              (new Date() - new Date(gamificationData.lastDailyLogDate)) /
+                (1000 * 60 * 60 * 24)
+            ) <= 2),
+      },
       levelProgress: {
         currentLevel: currentLevel,
         pointsInCurrentLevel: updatedEcoPoints % 100,

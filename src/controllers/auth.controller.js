@@ -12,9 +12,62 @@ import admin from "firebase-admin";
 
 dotenv.config();
 
+// Helper function to generate referral code
+const generateReferralCode = (name, email) => {
+  const namePrefix = name ? name.substring(0, 3).toUpperCase() : "ECO";
+  const emailPrefix = email.substring(0, 3).toUpperCase();
+  const randomNum = Math.floor(Math.random() * 10000)
+    .toString()
+    .padStart(4, "0");
+  return `${namePrefix}${emailPrefix}${randomNum}`;
+};
+
+// Helper function to get timezone based on country
+const getTimezoneByCountry = (country) => {
+  const timezones = {
+    india: "Asia/Kolkata",
+    uae: "Asia/Dubai",
+    dubai: "Asia/Dubai",
+    "united arab emirates": "Asia/Dubai",
+    usa: "America/New_York",
+    "united states": "America/New_York",
+    uk: "Europe/London",
+    "united kingdom": "Europe/London",
+    canada: "America/Toronto",
+    australia: "Australia/Sydney",
+    singapore: "Asia/Singapore",
+    japan: "Asia/Tokyo",
+    germany: "Europe/Berlin",
+    france: "Europe/Paris",
+    brazil: "America/Sao_Paulo",
+    china: "Asia/Shanghai",
+    russia: "Europe/Moscow",
+    "south africa": "Africa/Johannesburg",
+    egypt: "Africa/Cairo",
+    "saudi arabia": "Asia/Riyadh",
+    kuwait: "Asia/Kuwait",
+    qatar: "Asia/Qatar",
+    bahrain: "Asia/Bahrain",
+    oman: "Asia/Muscat",
+  };
+
+  const countryLower = country ? country.toLowerCase() : "india";
+  return timezones[countryLower] || "Asia/Kolkata"; // Default to India timezone
+};
+
 export const signup = async (req, res, next) => {
   try {
-    const { email, password, name, age, gender, bloodGroup, role } = req.body;
+    const {
+      email,
+      password,
+      name,
+      age,
+      gender,
+      bloodGroup,
+      role,
+      country,
+      referredBy,
+    } = req.body;
 
     const existingUser = await checkUserExists(email);
     if (existingUser) {
@@ -25,6 +78,23 @@ export const signup = async (req, res, next) => {
       );
     }
 
+    // Validate referral code if provided
+    let referrerData = null;
+    if (referredBy) {
+      const referrerQuery = await admin
+        .firestore()
+        .collection("users")
+        .where("referralCode", "==", referredBy)
+        .limit(1)
+        .get();
+
+      if (referrerQuery.empty) {
+        return sendErrorResponse(res, 400, "Invalid referral code provided.");
+      }
+
+      referrerData = referrerQuery.docs[0].data();
+    }
+
     // Default role to "user" if not provided, only allow "admin" for specific emails
     const userRole = role === "admin" && isAdminEmail(email) ? "admin" : "user";
     console.log(
@@ -33,6 +103,12 @@ export const signup = async (req, res, next) => {
       )}", finalRole="${userRole}"`
     );
 
+    // Generate unique referral code
+    const referralCode = generateReferralCode(name, email);
+
+    // Get timezone based on country
+    const timezone = getTimezoneByCountry(country);
+
     const user = await createUser(
       email,
       password,
@@ -40,8 +116,64 @@ export const signup = async (req, res, next) => {
       age,
       gender,
       bloodGroup,
-      userRole
+      userRole,
+      country || "India",
+      timezone,
+      referralCode,
+      referredBy
     );
+
+    // If user was referred, update referrer's referral count and give bonus points to both users
+    if (referrerData) {
+      const referrerRef = admin
+        .firestore()
+        .collection("users")
+        .doc(referrerData.uid);
+      const referrerGamificationRef = admin
+        .firestore()
+        .collection("users")
+        .doc(referrerData.uid)
+        .collection("gamification")
+        .doc("data");
+
+      const newUserGamificationRef = admin
+        .firestore()
+        .collection("users")
+        .doc(user.uid)
+        .collection("gamification")
+        .doc("data");
+
+      // Update referrer's referral count
+      await referrerRef.update({
+        referralCount: (referrerData.referralCount || 0) + 1,
+        lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      // Give referrer bonus points (70 points for successful referral)
+      await referrerGamificationRef.set(
+        {
+          ecoPoints: admin.firestore.FieldValue.increment(70),
+          referralBonus: admin.firestore.FieldValue.increment(70),
+          lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      // Give new user welcome bonus points (70 points for being referred)
+      await newUserGamificationRef.set(
+        {
+          ecoPoints: 70,
+          referralWelcomeBonus: 70,
+          lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      console.log(
+        `🎉 Referral success: ${referrerData.email} referred ${email}. Both users got 70 eco points!`
+      );
+    }
 
     return sendSuccessResponse(
       res,
@@ -52,6 +184,9 @@ export const signup = async (req, res, next) => {
         email: user.email,
         name: user.displayName,
         role: userRole,
+        country: country || "India",
+        timezone,
+        referralCode,
         profileComplete: !!(age && gender && bloodGroup),
       }
     );
@@ -164,11 +299,21 @@ export const socialLogin = async (req, res, next) => {
     const userDoc = await userRef.get();
 
     if (!userDoc.exists) {
+      // Generate referral code for social login users
+      const referralCode = generateReferralCode(
+        name || email.split("@")[0],
+        email
+      );
+
       const userData = {
         uid,
         email,
         name: name || email.split("@")[0],
         role: "user",
+        country: "India", // Default country
+        timezone: "Asia/Kolkata", // Default timezone
+        referralCode,
+        referralCount: 0,
         profileComplete: false,
         profilePictureUrl: picture || null,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -200,7 +345,6 @@ export const socialLogin = async (req, res, next) => {
     return next(error);
   }
 };
-
 
 const transporter = nodemailer.createTransport({
   service: "gmail",

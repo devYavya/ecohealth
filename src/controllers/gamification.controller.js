@@ -22,8 +22,11 @@ export const getGamificationProfile = async (req, res) => {
       const defaultGamification = {
         ecoPoints: 0,
         level: 1,
-        streaks: {},
+        dailyLogStreak: 0,
+        lastDailyLogDate: null,
+        streakStartDate: null,
         badges: [],
+        streakBadges: [],
         createdAt: new Date(),
       };
 
@@ -55,14 +58,18 @@ export const updateGamificationAfterDailyLog = async (uid, carbonFootprint) => {
 
     let ecoPoints = 0;
     let level = 1;
-    let streaks = { startDate: new Date(), count: 0, lastDate: null };
+    let dailyLogStreak = 0;
+    let lastDailyLogDate = null;
+    let streakStartDate = null;
     let badges = [];
 
     if (snapshot.exists) {
       const data = snapshot.data();
       ecoPoints = data.ecoPoints || 0;
       level = data.level || 1;
-      streaks = data.streaks || streaks;
+      dailyLogStreak = data.dailyLogStreak || 0;
+      lastDailyLogDate = data.lastDailyLogDate || null;
+      streakStartDate = data.streakStartDate || null;
       badges = data.badges || [];
     }
 
@@ -75,34 +82,60 @@ export const updateGamificationAfterDailyLog = async (uid, carbonFootprint) => {
 
     // Update streaks
     const today = new Date().toISOString().split("T")[0];
-    if (streaks.lastDate === today) {
+    if (lastDailyLogDate === today) {
       // Already logged today, no change
     } else if (
-      streaks.lastDate ===
+      lastDailyLogDate ===
       new Date(Date.now() - 86400000).toISOString().split("T")[0]
     ) {
       // Increment streak
-      streaks.count += 1;
-      streaks.lastDate = today;
+      dailyLogStreak += 1;
+      lastDailyLogDate = today;
+      // Set start date if it doesn't exist (for existing streaks that didn't have start date)
+      if (!streakStartDate) {
+        // Calculate start date based on current streak count
+        const startDateObj = new Date();
+        startDateObj.setDate(startDateObj.getDate() - dailyLogStreak + 1);
+        streakStartDate = startDateObj.toISOString().split("T")[0];
+      }
     } else {
       // Reset streak
-      streaks = { startDate: today, count: 1, lastDate: today };
+      dailyLogStreak = 1;
+      lastDailyLogDate = today;
+      streakStartDate = today;
     }
 
     // Update badges
     if (ecoPoints >= 100 && !badges.includes("100_points")) {
       badges.push("100_points");
     }
-    if (streaks.count >= 7 && !badges.includes("7_day_streak")) {
+    if (dailyLogStreak >= 7 && !badges.includes("7_day_streak")) {
       badges.push("7_day_streak");
     }
 
     await gamificationRef.set(
-      { ecoPoints, level, streaks, badges },
+      {
+        ecoPoints,
+        level,
+        dailyLogStreak,
+        lastDailyLogDate,
+        streakStartDate,
+        badges,
+      },
       { merge: true }
     );
 
-    return { ecoPoints, level, pointsEarned, streaks, badges };
+    return {
+      ecoPoints,
+      level,
+      pointsEarned,
+      streakInfo: {
+        count: dailyLogStreak,
+        lastDate: lastDailyLogDate,
+        startDate: streakStartDate,
+      },
+      badges,
+    };
   } catch (err) {
     console.error("updateGamificationAfterDailyLog error:", err);
     throw err;
@@ -147,8 +180,11 @@ export const resetGamificationProfile = async (req, res) => {
     await gamificationRef.set({
       ecoPoints: 0,
       level: 1,
-      streaks: {},
+      dailyLogStreak: 0,
+      lastDailyLogDate: null,
+      streakStartDate: null,
       badges: [],
+      streakBadges: [],
     });
     return res.status(200).json({ message: "Gamification profile reset." });
   } catch (err) {

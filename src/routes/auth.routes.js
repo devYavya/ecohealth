@@ -81,6 +81,15 @@ export default router;
  *               bloodGroup:
  *                 type: string
  *                 example: B+
+ *               country:
+ *                 type: string
+ *                 default: India
+ *                 example: India
+ *                 description: User's country (determines timezone automatically)
+ *               referredBy:
+ *                 type: string
+ *                 example: JOHNDOE1234
+ *                 description: Referral code of the person who referred this user (optional)
  *               role:
  *                 type: string
  *                 enum: [user, admin]
@@ -95,14 +104,43 @@ export default router;
  *             schema:
  *               type: object
  *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
  *                 message:
  *                   type: string
- *                   example: Signup successful
- *                 uid:
- *                   type: string
- *                   example: abcd1234uid
+ *                   example: "Account created successfully! Please complete your profile."
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     uid:
+ *                       type: string
+ *                       example: abcd1234uid
+ *                     email:
+ *                       type: string
+ *                       example: user@example.com
+ *                     name:
+ *                       type: string
+ *                       example: John Doe
+ *                     role:
+ *                       type: string
+ *                       example: user
+ *                     country:
+ *                       type: string
+ *                       example: India
+ *                     timezone:
+ *                       type: string
+ *                       example: Asia/Kolkata
+ *                     referralCode:
+ *                       type: string
+ *                       example: JOHNDOE1234
+ *                     profileComplete:
+ *                       type: boolean
+ *                       example: true
  *       400:
- *         description: Invalid input or email already exists
+ *         description: Invalid input, invalid referral code, or email already exists
+ *       409:
+ *         description: Email already exists
  */
 
 /**

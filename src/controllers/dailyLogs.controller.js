@@ -381,13 +381,9 @@ export const submitDailyLog = async (req, res) => {
       // Don't fail the daily log submission if streak update fails
     }
 
-    // Update gamification after successful daily log submission
-    try {
-      await updateGamificationAfterDailyLog(uid, carbonFootprint.total);
-    } catch (gamificationError) {
-      console.error("Error updating gamification:", gamificationError);
-      // Don't fail the daily log submission if gamification update fails
-    }
+    // NOTE: updateGamificationAfterDailyLog is NOT called here because
+    // updateDailyLogStreak already handles all gamification updates
+    // Calling both would cause conflicts and override our streak data
 
     // Challenge
     try {
@@ -577,10 +573,9 @@ const updateDailyLogStreak = async (uid, currentDate) => {
     const streakBadges = gamificationData.streakBadges || [];
     const currentEcoPoints = gamificationData.ecoPoints || 0;
 
-    // Convert current date to Date object for comparison
-    const today = new Date(currentDate);
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
+    console.log(
+      `📊 Current streak data: streak=${currentStreak}, lastDate=${lastLogDate}, points=${currentEcoPoints}`
+    );
 
     let newStreak = currentStreak;
     let streakBroken = false;
@@ -591,10 +586,22 @@ const updateDailyLogStreak = async (uid, currentDate) => {
       newStreak = 1;
       console.log("🎉 First daily log! Starting streak at 1");
     } else {
-      const lastDate = new Date(lastLogDate);
-      const daysDifference = Math.floor(
-        (today - lastDate) / (1000 * 60 * 60 * 24)
+      // Use string date comparison for accuracy
+      const todayString = currentDate; // Already in YYYY-MM-DD format
+      const lastDateString = lastLogDate; // Should be in YYYY-MM-DD format
+
+      console.log(
+        `📅 Date comparison: last=${lastDateString}, today=${todayString}`
       );
+
+      // Convert to Date objects for day difference calculation
+      const lastDate = new Date(lastDateString + "T00:00:00");
+      const todayDate = new Date(todayString + "T00:00:00");
+      const daysDifference = Math.floor(
+        (todayDate - lastDate) / (1000 * 60 * 60 * 24)
+      );
+
+      console.log(`📊 Days difference: ${daysDifference}`);
 
       if (daysDifference === 0) {
         // Same day - don't update streak, just award daily point
@@ -607,11 +614,11 @@ const updateDailyLogStreak = async (uid, currentDate) => {
           `🔥 Consecutive day! Streak: ${currentStreak} → ${newStreak}`
         );
       } else {
-        // Gap in days - reset streak
+        // Gap in days - reset streak to 1 (starting fresh)
         newStreak = 1;
         streakBroken = true;
         console.log(
-          `💔 Streak broken after ${currentStreak} days. Starting fresh.`
+          `💔 Streak broken after ${currentStreak} days (gap of ${daysDifference} days). Starting fresh with new streak.`
         );
       }
     }
@@ -657,6 +664,27 @@ const updateDailyLogStreak = async (uid, currentDate) => {
       updatedAt: new Date(),
     };
 
+    // Set streak start date logic
+    if (newStreak === 1 || streakBroken) {
+      // New streak starting or streak was broken - set start date to today
+      updateData.streakStartDate = currentDate;
+    } else if (!gamificationData.streakStartDate && newStreak > 1) {
+      // Existing streak but no start date recorded (for backward compatibility)
+      // Only calculate if we're confident the streak is continuous
+      const startDateObj = new Date(currentDate);
+      startDateObj.setDate(startDateObj.getDate() - newStreak + 1);
+      updateData.streakStartDate = startDateObj.toISOString().split("T")[0];
+    }
+
+    // Save previous best streak if current streak is broken and was longer
+    if (
+      streakBroken &&
+      currentStreak > (gamificationData.previousBestStreak || 0)
+    ) {
+      updateData.previousBestStreak = currentStreak;
+      console.log(`🏆 New personal best streak record: ${currentStreak} days`);
+    }
+
     // Update level based on new points
     updateData.level = Math.floor(finalEcoPoints / 100) + 1;
 
@@ -681,12 +709,18 @@ const updateDailyLogStreak = async (uid, currentDate) => {
     // Update or create gamification document
     if (gamificationDoc.exists) {
       await gamificationRef.update(updateData);
+      console.log(
+        `💾 Updated existing gamification doc with streak=${newStreak}, lastDate=${currentDate}`
+      );
     } else {
       await gamificationRef.set({
         ...updateData,
         totalDailyLogsSubmitted: 1,
         createdAt: new Date(),
       });
+      console.log(
+        `💾 Created new gamification doc with streak=${newStreak}, lastDate=${currentDate}`
+      );
     }
 
     console.log(

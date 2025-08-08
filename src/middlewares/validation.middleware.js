@@ -49,6 +49,24 @@ export const signupSchema = Joi.object({
         "Blood group must be one of: A+, A-, B+, B-, AB+, AB-, O+, O-",
     }),
 
+  country: Joi.string().min(2).max(50).default("India").optional().messages({
+    "string.min": "Country must be at least 2 characters",
+    "string.max": "Country cannot exceed 50 characters",
+  }),
+
+  referredBy: Joi.string()
+    .alphanum()
+    .uppercase()
+    .min(6)
+    .max(15)
+    .optional()
+    .messages({
+      "string.alphanum": "Referral code must contain only letters and numbers",
+      "string.uppercase": "Referral code must be uppercase",
+      "string.min": "Referral code must be at least 6 characters",
+      "string.max": "Referral code cannot exceed 15 characters",
+    }),
+
   role: Joi.string()
     .valid("user", "admin")
     .default("user")

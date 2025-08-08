@@ -340,7 +340,6 @@ router.get("/progress", verifyToken, getOnboardingProgress);
  *           schema:
  *             type: object
  *             required:
-
  *               - primaryMode
  *               - fuelType
  *               - dailyDistance
@@ -374,27 +373,32 @@ router.get("/progress", verifyToken, getOnboardingProgress);
  *               fuelType:
  *                 type: string
  *                 enum: [petrol, diesel, cng, electric, hybrid]
- *                 example: "petrol"
+ *                 example: "electric"
  *                 description: Vehicle fuel type (if applicable)
+ *               evChargingSource:
+ *                 type: string
+ *                 enum: [renewable, grid, mixed]
+ *                 example: "renewable"
+ *                 description: EV charging source (required if fuelType is electric)
  *               dailyDistance:
  *                 type: string
  *                 enum: [0_5km, 6_15km, 16_30km, 31_50km, 51plus_km]
- *                 example: "51plus_km"
+ *                 example: "6_15km"
  *                 description: Daily travel distance
  *               passengers:
  *                 type: string
- *                 enum: [alone, with_1, with_2_3, with_4plus]
- *                 example: "alone"
+ *                 enum: [alone, one_passenger, two_passengers, three_plus_passengers]
+ *                 example: "one_passenger"
  *                 description: Typical number of passengers in vehicle
  *               flightsPerYear:
  *                 type: string
- *                 enum: [none, 1_2, 3_5, 6plus]
- *                 example: "6plus"
+ *                 enum: [none, 1_2, 3_5, 6_10, 11plus]
+ *                 example: "1_2"
  *                 description: Number of flights taken per year
  *               mileage:
  *                 type: string
- *                 enum: [high, medium, low]
- *                 example: "low"
+ *                 enum: [excellent, good, average, poor]
+ *                 example: "excellent"
  *                 description: Vehicle fuel efficiency
  *               
  *               # Diet Profile
@@ -402,13 +406,13 @@ router.get("/progress", verifyToken, getOnboardingProgress);
  *                 type: integer
  *                 minimum: 1
  *                 maximum: 6
- *                 example: 4
+ *                 example: 3
  *                 description: Number of meals consumed per day
  *               meatPercentage:
  *                 type: integer
  *                 minimum: 0
  *                 maximum: 100
- *                 example: 70
+ *                 example: 10
  *                 description: Percentage of meals containing meat
  *               dairyPercentage:
  *                 type: integer
@@ -420,22 +424,22 @@ router.get("/progress", verifyToken, getOnboardingProgress);
  *                 type: integer
  *                 minimum: 0
  *                 maximum: 100
- *                 example: 10
+ *                 example: 70
  *                 description: Percentage of plant-based meals
  *               orderedMealsFreq:
  *                 type: string
- *                 enum: [never, 1_5_week, 6_10_week, 11_15_week, 16_20_week, 21plus_week]
- *                 example: "16_20_week"
+ *                 enum: [never, 1_2_week, 3_5_week, 6_10_week, 11_15_week, 16plus_week]
+ *                 example: "1_2_week"
  *                 description: Frequency of ordered/delivered meals per week
  *               junkFoodFreq:
  *                 type: string
- *                 enum: [never, rarely, weekly, few_times_week, daily]
- *                 example: "daily"
+ *                 enum: [never, rarely, occasionally, frequently, daily]
+ *                 example: "occasionally"
  *                 description: Frequency of junk food consumption
  *               foodWaste:
  *                 type: string
  *                 enum: [never, rarely, sometimes, often, always]
- *                 example: "often"
+ *                 example: "rarely"
  *                 description: Food waste frequency
  *               
  *               # Electricity Profile
@@ -443,82 +447,83 @@ router.get("/progress", verifyToken, getOnboardingProgress);
  *                 type: integer
  *                 minimum: 0
  *                 maximum: 2000
- *                 example: 800
+ *                 example: 200
  *                 description: Monthly electricity consumption in kWh
  *               householdSize:
  *                 type: integer
  *                 minimum: 1
  *                 maximum: 10
- *                 example: 1
+ *                 example: 3
  *                 description: Number of people in household
  *               timeAtHome:
  *                 type: string
- *                 enum: [less_4hours, 4_8hours, 8_12hours, 12plus_hours]
- *                 example: "12plus_hours"
+ *                 enum: [less_4_hours, 5_8_hours, 9_12_hours, 13plus_hours]
+ *                 example: "5_8_hours"
  *                 description: Time spent at home daily
  *               appliances:
  *                 type: array
  *                 items:
  *                   type: string
  *                   enum: [air_conditioner, geyser, refrigerator, washing_machine, microwave, laptop_desktop, tv_console, dishwasher, electric_vehicle_charger]
- *                 example: ["air_conditioner", "geyser", "refrigerator", "washing_machine", "microwave", "laptop_desktop", "tv_console"]
+ *                 example: ["refrigerator", "washing_machine", "laptop_desktop"]
  *                 description: List of electrical appliances owned
  *               renewableEnergy:
  *                 type: string
- *                 enum: [solar_panels, wind_power, renewable_grid, no_renewable]
- *                 example: "no_renewable"
+ *                 enum: [solar_panels, partially_renewable, renewable_grid, no_renewable]
+ *                 example: "partially_renewable"
  *                 description: Renewable energy usage
  *               
  *               # Lifestyle Profile
  *               screenTime:
  *                 type: string
- *                 enum: [less_2hrs, 2_4hrs, 4_6hrs, 6plus_hrs]
- *                 example: "6plus_hrs"
+ *                 enum: [less_2hrs, 2_4hrs, 4_6hrs, 6_8hrs, 8plus_hrs]
+ *                 example: "2_4hrs"
  *                 description: Daily screen time hours
  *               nonEssentialShopping:
  *                 type: string
- *                 enum: [never, monthly, weekly, few_times_week, daily]
- *                 example: "weekly"
+ *                 enum: [never, few_times_month, weekly, few_times_week, daily]
+ *                 example: "few_times_month"
  *                 description: Frequency of non-essential shopping
  *               fashionShopping:
  *                 type: string
- *                 enum: [never, few_times_year, once_month, more_once_month, weekly]
- *                 example: "more_once_month"
+ *                 enum: [never, every_6plus_months, every_3plus_months, monthly, every_2_weeks]
+ *                 example: "every_3plus_months"
  *                 description: Fashion/clothing shopping frequency
  *               onlineOrders:
  *                 type: string
- *                 enum: [0_2, 3_5, 6_10, 11_15, 15plus]
- *                 example: "15plus"
+ *                 enum: [0, 1_5, 6_10, 11_20, 21plus]
+ *                 example: "1_5"
  *                 description: Number of online orders per month
  *               wasteManagement:
  *                 type: string
- *                 enum: [segregate_recycle, basic_segregation, minimal_effort, throw_everything]
- *                 example: "throw_everything"
+ *                 enum: [separate_all, recycle_some, basic_separation, throw_together]
+ *                 example: "recycle_some"
  *                 description: Waste management practices
  *           example:
  *             primaryMode: "personal_car"
- *             fuelType: "petrol"
- *             dailyDistance: "51plus_km"
- *             passengers: "alone"
- *             flightsPerYear: "6plus"
- *             mileage: "low"
- *             mealsPerDay: 4
- *             meatPercentage: 70
+ *             fuelType: "electric"
+ *             evChargingSource: "renewable"
+ *             dailyDistance: "6_15km"
+ *             passengers: "one_passenger"
+ *             flightsPerYear: "1_2"
+ *             mileage: "excellent"
+ *             mealsPerDay: 3
+ *             meatPercentage: 10
  *             dairyPercentage: 20
- *             plantPercentage: 10
- *             orderedMealsFreq: "16_20_week"
- *             junkFoodFreq: "daily"
- *             foodWaste: "often"
- *             monthlyKwh: 800
- *             householdSize: 1
- *             timeAtHome: "12plus_hours"
- *             appliances: ["air_conditioner", "geyser", "refrigerator", "washing_machine", "microwave", "laptop_desktop", "tv_console"]
- *             renewableEnergy: "no_renewable"
- *             screenTime: "6plus_hrs"
- *             nonEssentialShopping: "weekly"
- *             fashionShopping: "more_once_month"
- *             onlineOrders: "15plus"
- *             wasteManagement: "throw_everything"
+ *             plantPercentage: 70
+ *             orderedMealsFreq: "1_2_week"
+ *             junkFoodFreq: "occasionally"
+ *             foodWaste: "rarely"
+ *             monthlyKwh: 200
+ *             householdSize: 3
+ *             timeAtHome: "5_8_hours"
+ *             appliances: ["refrigerator", "washing_machine", "laptop_desktop"]
+ *             renewableEnergy: "partially_renewable"
+ *             screenTime: "2_4hrs"
+ *             nonEssentialShopping: "few_times_month"
+ *             fashionShopping: "every_3plus_months"
+ *             onlineOrders: "1_5"
+ *             wasteManagement: "recycle_some"
  *     responses:
  *       200:
  *         description: Onboarding completed successfully with carbon footprint calculated
@@ -536,7 +541,7 @@ router.get("/progress", verifyToken, getOnboardingProgress);
  *                     totalCarbonFootprint:
  *                       type: number
  *                       format: float
- *                       example: 148.23
+ *                       example: 8.45
  *                       description: Total daily carbon footprint in kg CO2e
  *                     unit:
  *                       type: string
@@ -544,7 +549,7 @@ router.get("/progress", verifyToken, getOnboardingProgress);
  *                     category:
  *                       type: string
  *                       enum: [Low Impact, Moderate Impact, High Impact, Very High Impact]
- *                       example: "Very High Impact"
+ *                       example: "Low Impact"
  *                       description: Carbon footprint impact category
  *                     breakdown:
  *                       type: object
@@ -554,49 +559,49 @@ router.get("/progress", verifyToken, getOnboardingProgress);
  *                           properties:
  *                             value:
  *                               type: string
- *                               example: "personal_car"
+ *                               example: "electric_vehicle"
  *                             emission:
  *                               type: number
- *                               example: 89.34
+ *                               example: 2.15
  *                             percentage:
  *                               type: string
- *                               example: "60.3%"
+ *                               example: "25.4%"
  *                         diet:
  *                           type: object
  *                           properties:
  *                             value:
  *                               type: string
- *                               example: "high_meat_consumption"
+ *                               example: "plant_based"
  *                             emission:
  *                               type: number
- *                               example: 28.45
+ *                               example: 3.20
  *                             percentage:
  *                               type: string
- *                               example: "19.2%"
+ *                               example: "37.9%"
  *                         electricity:
  *                           type: object
  *                           properties:
  *                             value:
  *                               type: string
- *                               example: "high_consumption"
+ *                               example: "renewable_energy"
  *                             emission:
  *                               type: number
- *                               example: 18.67
+ *                               example: 1.85
  *                             percentage:
  *                               type: string
- *                               example: "12.6%"
+ *                               example: "21.9%"
  *                         lifestyle:
  *                           type: object
  *                           properties:
  *                             value:
  *                               type: string
- *                               example: "high_consumption"
+ *                               example: "minimal_consumption"
  *                             emission:
  *                               type: number
- *                               example: 11.77
+ *                               example: 1.25
  *                             percentage:
  *                               type: string
- *                               example: "7.9%"
+ *                               example: "14.8%"
  *                 gamificationBonus:
  *                   type: number
  *                   example: 50
@@ -611,10 +616,10 @@ router.get("/progress", verifyToken, getOnboardingProgress);
  *                         example: "Transportation"
  *                       suggestion:
  *                         type: string
- *                         example: "Consider using public transport or carpooling 2-3 days per week"
+ *                         example: "Continue using renewable energy for EV charging"
  *                       potentialSaving:
  *                         type: string
- *                         example: "3-5 kg CO2e per day"
+ *                         example: "0.5-1 kg CO2e per day"
  *                   description: Personalized carbon reduction recommendations
  *       400:
  *         description: Invalid or incomplete onboarding data
@@ -650,7 +655,6 @@ router.get("/progress", verifyToken, getOnboardingProgress);
  *                   type: string
  *                   example: "Database connection error"
  */
-
 /**
  * @swagger
  * /api/onboarding/dashboard:
@@ -676,7 +680,7 @@ router.get("/progress", verifyToken, getOnboardingProgress);
  *                   properties:
  *                     name:
  *                       type: string
- *                       example: "Tripansh"
+ *                       example: "John Doe"
  *                       description: User's display name
  *                     profilePictureUrl:
  *                       type: string

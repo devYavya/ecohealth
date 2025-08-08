@@ -16,7 +16,6 @@ export const checkUserExists = async (email) => {
 
 export const linkSocialAccount = async (existingUid, socialIdToken) => {
   try {
-
     throw new Error("Account linking requires user confirmation");
   } catch (error) {
     throw error;
@@ -30,7 +29,11 @@ export const createUser = async (
   age,
   gender,
   bloodGroup,
-  role = "user"
+  role = "user",
+  country = "India",
+  timezone = "Asia/Kolkata",
+  referralCode,
+  referredBy = null
 ) => {
   const firestore = admin.firestore();
 
@@ -41,15 +44,23 @@ export const createUser = async (
     displayName: name,
   });
 
- 
   const userData = {
     uid: userRecord.uid,
     email,
     name,
     role, // Default to "user", can be "admin"
+    country,
+    timezone,
+    referralCode,
+    referralCount: 0,
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
     lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
   };
+
+  // Add referredBy if provided
+  if (referredBy) {
+    userData.referredBy = referredBy;
+  }
 
   // Only add optional fields if they exist
   if (age) userData.age = Number(age);
