@@ -297,12 +297,29 @@ export const getMyChallenges = async (req, res) => {
       .get();
 
     const challenges = [];
-    snapshot.forEach((doc) => {
+
+
+    for (const doc of snapshot.docs) {
+      const userChallengeData = doc.data();
+
+  
+      const mainChallengeDoc = await db
+        .collection("challenges")
+        .doc(userChallengeData.challengeId)
+        .get();
+
+      const mainChallengeData = mainChallengeDoc.exists
+        ? mainChallengeDoc.data()
+        : {};
+
       challenges.push({
         id: doc.id,
-        ...doc.data(),
+        ...userChallengeData,
+        description:
+          mainChallengeData.description || "No description available",
+        difficulty: mainChallengeData.difficulty || "medium",
       });
-    });
+    }
 
     const activeChallenges = challenges.filter(
       (challenge) => !challenge.isCompleted

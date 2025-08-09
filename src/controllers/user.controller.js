@@ -67,10 +67,17 @@ export const getUserProfile = async (req, res) => {
       referredBy: userData.referredBy || null,
     };
 
+   
+    const countryInfo = {
+      country: userData.country || "India", 
+      timezone: userData.timezone || "Asia/Kolkata", 
+    };
+
     return sendSuccessResponse(res, 200, "Profile retrieved successfully", {
       ...safeUserData,
       profileComplete,
       referralStats,
+      ...countryInfo,
     });
   } catch (error) {
     console.error("Error fetching user profile:", error.message);
