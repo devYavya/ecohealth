@@ -17,16 +17,15 @@ import {
   passwordResetSchema,
 } from "../middlewares/validation.middleware.js";
 import {
-  authLimiter,
+  
   passwordResetLimiter,
 } from "../middlewares/rateLimiter.middleware.js";
 
 // Routes with validation and rate limiting
-router.post("/signup", authLimiter, validateRequest(signupSchema), signup);
-router.post("/login", authLimiter, validateRequest(loginSchema), login);
+router.post("/signup",  validateRequest(signupSchema), signup);
+router.post("/login", validateRequest(loginSchema), login);
 router.post(
   "/social-login",
-  authLimiter,
   validateRequest(socialLoginSchema),
   socialLogin
 );
@@ -36,7 +35,7 @@ router.post(
   validateRequest(passwordResetSchema),
   sendPasswordResetEmail
 );
-router.post("/refresh-token", authLimiter, refreshToken);
+router.post("/refresh-token", refreshToken);
 router.post("/logout", logout);
 
 export default router;

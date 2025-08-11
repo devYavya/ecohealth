@@ -115,6 +115,17 @@ export const generateToken = async (email, password) => {
       " Failed to generate ID token:",
       error.response?.data || error.message
     );
+    
+    // Handle specific Firebase errors
+    const errorCode = error.response?.data?.error?.message;
+    if (errorCode === "TOO_MANY_ATTEMPTS_TRY_LATER") {
+      throw new Error("RATE_LIMITED: Too many failed attempts. Please try again later or reset your password.");
+    } else if (errorCode === "INVALID_PASSWORD" || errorCode === "EMAIL_NOT_FOUND") {
+      throw new Error("INVALID_CREDENTIALS: Invalid email or password.");
+    } else if (errorCode === "USER_DISABLED") {
+      throw new Error("ACCOUNT_DISABLED: This account has been disabled.");
+    }
+    
     throw new Error("Firebase sign-in failed");
   }
 };
