@@ -9,6 +9,8 @@ import {
   getAllPosts,
   getPostComments,
   deletePost,
+  deleteUserPost,
+  deleteUserComment,
 } from "../controllers/socialFeed.controller.js";
 
 const router = express.Router();
@@ -248,6 +250,118 @@ const upload = multer({
 
 /**
  * @swagger
+ * /api/feed/{postId}:
+ *   delete:
+ *     summary: Delete your own post
+ *     tags: [SocialFeed]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: postId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the post to delete
+ *     responses:
+ *       200:
+ *         description: Post deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Your post has been deleted successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     postId:
+ *                       type: string
+ *                       example: "post123"
+ *                     commentsDeleted:
+ *                       type: integer
+ *                       example: 5
+ *                     hadImage:
+ *                       type: boolean
+ *                       example: true
+ *                     hadVideo:
+ *                       type: boolean
+ *                       example: false
+ *                     mediaType:
+ *                       type: string
+ *                       enum: [image, video]
+ *                       example: "image"
+ *       401:
+ *         description: Unauthorized - Token required
+ *       403:
+ *         description: Forbidden - You can only delete your own posts
+ *       404:
+ *         description: Post not found
+ *       500:
+ *         description: Internal server error
+ */
+
+/**
+ * @swagger
+ * /api/feed/{postId}/comments/{commentId}:
+ *   delete:
+ *     summary: Delete your own comment
+ *     tags: [SocialFeed]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: postId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the post containing the comment
+ *       - in: path
+ *         name: commentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the comment to delete
+ *     responses:
+ *       200:
+ *         description: Comment deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Your comment has been deleted successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     postId:
+ *                       type: string
+ *                       example: "post123"
+ *                     commentId:
+ *                       type: string
+ *                       example: "comment456"
+ *       401:
+ *         description: Unauthorized - Token required
+ *       403:
+ *         description: Forbidden - You can only delete your own comments
+ *       404:
+ *         description: Comment not found
+ *       500:
+ *         description: Internal server error
+ */
+
+/**
+ * @swagger
  * /api/feed/{postId}/delete:
  *   delete:
  *     summary: Delete a post (Admin only)
@@ -319,5 +433,9 @@ router.get("/:postId/comments", verifyToken, getPostComments);
 
 // Admin only route to delete posts
 router.delete("/:postId/delete", verifyToken, verifyAdmin, deletePost);
+
+// User routes to delete their own posts and comments
+router.delete("/:postId", verifyToken, deleteUserPost);
+router.delete("/:postId/comments/:commentId", verifyToken, deleteUserComment);
 
 export default router;

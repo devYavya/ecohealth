@@ -594,3 +594,157 @@ export const deletePost = async (req, res) => {
     });
   }
 };
+
+// Delete user's own post
+export const deleteUserPost = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const { uid } = req.user;
+
+    // Check if post exists
+    const postDoc = await db.collection("posts").doc(postId).get();
+
+    if (!postDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        message: "Post not found",
+      });
+    }
+
+    const postData = postDoc.data();
+
+    // Check if user owns this post
+    if (postData.userId !== uid) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only delete your own posts",
+      });
+    }
+
+    // Delete media from storage if it exists
+    if (postData.imageUrl) {
+      try {
+        const imagePath = `posts_images/${postId}.jpg`;
+        await bucket.file(imagePath).delete();
+        console.log(`🗑️ User deleted image: ${imagePath}`);
+      } catch (imageError) {
+        console.warn(
+          `⚠️ Failed to delete image for post ${postId}:`,
+          imageError.message
+        );
+      }
+    }
+
+    if (postData.videoUrl) {
+      try {
+        const videoPath = `posts_videos/${postId}.mp4`;
+        await bucket.file(videoPath).delete();
+        console.log(`🗑️ User deleted video: ${videoPath}`);
+      } catch (videoError) {
+        console.warn(
+          `⚠️ Failed to delete video for post ${postId}:`,
+          videoError.message
+        );
+      }
+    }
+
+    // Delete all comments for this post
+    const commentsSnapshot = await db
+      .collection("posts")
+      .doc(postId)
+      .collection("comments")
+      .get();
+
+    const batch = db.batch();
+
+    // Add all comment deletions to batch
+    commentsSnapshot.docs.forEach((commentDoc) => {
+      batch.delete(commentDoc.ref);
+    });
+
+    // Delete the main post document
+    batch.delete(db.collection("posts").doc(postId));
+
+    // Execute batch delete
+    await batch.commit();
+
+    console.log(`✅ User ${uid} deleted their post ${postId}`);
+
+    return res.status(200).json({
+      success: true,
+      message: "Your post has been deleted successfully",
+      data: {
+        postId,
+        commentsDeleted: commentsSnapshot.size,
+        hadImage: !!postData.imageUrl,
+        hadVideo: !!postData.videoUrl,
+        mediaType: postData.mediaType,
+      },
+    });
+  } catch (error) {
+    console.error("deleteUserPost error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to delete post",
+    });
+  }
+};
+
+// Delete user's own comment
+export const deleteUserComment = async (req, res) => {
+  try {
+    const { postId, commentId } = req.params;
+    const { uid } = req.user;
+
+    // Check if comment exists
+    const commentDoc = await db
+      .collection("posts")
+      .doc(postId)
+      .collection("comments")
+      .doc(commentId)
+      .get();
+
+    if (!commentDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        message: "Comment not found",
+      });
+    }
+
+    const commentData = commentDoc.data();
+
+    // Check if user owns this comment
+    if (commentData.userId !== uid) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only delete your own comments",
+      });
+    }
+
+    // Delete the comment
+    await commentDoc.ref.delete();
+
+    // Update post's comment count
+    const postRef = db.collection("posts").doc(postId);
+    await postRef.update({
+      commentsCount: admin.firestore.FieldValue.increment(-1),
+    });
+
+    console.log(`✅ User ${uid} deleted their comment ${commentId} on post ${postId}`);
+
+    return res.status(200).json({
+      success: true,
+      message: "Your comment has been deleted successfully",
+      data: {
+        postId,
+        commentId,
+      },
+    });
+  } catch (error) {
+    console.error("deleteUserComment error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to delete comment",
+    });
+  }
+};
