@@ -355,7 +355,6 @@ return sendSuccessResponse(res, 200, "Social login successful!", {
     uid,
     email,
     name: name || email.split("@")[0],
-    picture: picture || null,
     profileComplete: !!(
       userDoc.data()?.name &&
       userDoc.data()?.age &&
