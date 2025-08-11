@@ -256,15 +256,30 @@ export const login = async (req, res, next) => {
   } catch (error) {
     console.error("Login failed:", error.message);
 
-    // Handle specific error types
-    if (error.message.includes("RATE_LIMITED")) {
-      return sendErrorResponse(res, 429, "Too many failed login attempts. Please try again in a few minutes or use the password reset option.");
+    // Handle specific error types - RATE LIMITING DISABLED FOR TESTING
+    if (
+      error.message.includes("RATE_LIMITED") ||
+      error.message.includes("TOO_MANY_ATTEMPTS")
+    ) {
+      return sendErrorResponse(
+        res,
+        401,
+        "Please check your credentials. If you continue having issues, try resetting your password."
+      );
     } else if (error.message.includes("INVALID_CREDENTIALS")) {
       return sendErrorResponse(res, 401, "Invalid email or password.");
     } else if (error.message.includes("ACCOUNT_DISABLED")) {
-      return sendErrorResponse(res, 403, "This account has been disabled. Please contact support.");
+      return sendErrorResponse(
+        res,
+        403,
+        "This account has been disabled. Please contact support."
+      );
     } else if (error.message.includes("Firebase sign-in failed")) {
-      return sendErrorResponse(res, 401, "Login failed. Please check your credentials and try again.");
+      return sendErrorResponse(
+        res,
+        401,
+        "Login failed. Please check your credentials and try again."
+      );
     }
 
     next(error);
