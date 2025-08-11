@@ -121,6 +121,27 @@ export const profileSchema = Joi.object({
         "Blood group must be one of: A+, A-, B+, B-, AB+, AB-, O+, O-",
       "any.required": "Blood group is required",
     }),
+
+  country: Joi.string()
+    .min(2)
+    .max(50)
+    .optional()
+    .default("India")
+    .messages({
+      "string.min": "Country must be at least 2 characters",
+      "string.max": "Country cannot exceed 50 characters",
+    }),
+
+  referredBy: Joi.string()
+    .alphanum()
+    .min(8)
+    .max(20)
+    .optional()
+    .messages({
+      "string.alphanum": "Referral code must contain only letters and numbers",
+      "string.min": "Referral code must be at least 8 characters",
+      "string.max": "Referral code cannot exceed 20 characters",
+    }),
 });
 
 export const passwordResetSchema = Joi.object({

@@ -12,6 +12,33 @@ const generateReferralCode = (name, email) => {
   return `${namePrefix}${emailPrefix}${randomNum}`;
 };
 
+// Helper function to get timezone based on country
+const getTimezoneByCountry = (country) => {
+  const timezones = {
+    india: "Asia/Kolkata",
+    uae: "Asia/Dubai",
+    dubai: "Asia/Dubai",
+    "united arab emirates": "Asia/Dubai",
+    usa: "America/New_York",
+    "united states": "America/New_York",
+    uk: "Europe/London",
+    "united kingdom": "Europe/London",
+    canada: "America/Toronto",
+    australia: "Australia/Sydney",
+    singapore: "Asia/Singapore",
+    japan: "Asia/Tokyo",
+    germany: "Europe/Berlin",
+    france: "Europe/Paris",
+    brazil: "America/Sao_Paulo",
+    china: "Asia/Shanghai",
+    russia: "Europe/Moscow",
+    "south africa": "Africa/Johannesburg",
+    egypt: "Africa/Cairo",
+  };
+
+  return timezones[country?.toLowerCase()] || "Asia/Kolkata";
+};
+
 export const getUserProfile = async (req, res) => {
   const uid = req.user.uid;
 
@@ -114,14 +141,16 @@ export const updateUserProfile = async (req, res, next) => {
 export const upsertUserProfile = async (req, res) => {
   const uid = req.user.uid;
   const email = req.user.email;
-  const { name, age, gender, bloodGroup } = req.body;
+  const { name, age, gender, bloodGroup, country, referredBy } = req.body;
 
   try {
     const userRef = db.collection("users").doc(uid);
     const doc = await userRef.get();
+    const existingData = doc.exists ? doc.data() : {};
 
     const now = admin.firestore.FieldValue.serverTimestamp();
 
+    // Base profile data
     const data = {
       uid,
       name,
@@ -129,6 +158,8 @@ export const upsertUserProfile = async (req, res) => {
       gender,
       bloodGroup,
       email,
+      country: country || "India",
+      timezone: getTimezoneByCountry(country || "India"),
       lastUpdatedAt: now,
     };
 
@@ -136,7 +167,90 @@ export const upsertUserProfile = async (req, res) => {
       data.createdAt = now;
     }
 
+    // Handle referral logic - only if user doesn't already have a referredBy value
+    let referrerData = null;
+    if (referredBy && !existingData.referredBy) {
+      // Validate referral code
+      const referrerQuery = await admin
+        .firestore()
+        .collection("users")
+        .where("referralCode", "==", referredBy)
+        .limit(1)
+        .get();
+
+      if (referrerQuery.empty) {
+        return sendErrorResponse(res, 400, "Invalid referral code provided.");
+      }
+
+      referrerData = referrerQuery.docs[0].data();
+      
+      // Prevent self-referral
+      if (referrerData.uid === uid) {
+        return sendErrorResponse(res, 400, "You cannot refer yourself.");
+      }
+
+      data.referredBy = referredBy;
+      console.log(`👤 User ${email} is being referred by ${referrerData.email}`);
+    } else if (referredBy && existingData.referredBy) {
+      // User already has a referral, don't allow changing it
+      console.log(`⚠️ User ${email} already has referral code: ${existingData.referredBy}. Ignoring new referral code: ${referredBy}`);
+      data.referredBy = existingData.referredBy; // Keep existing referral
+    }
+
+    // Save user profile
     await userRef.set(data, { merge: true });
+
+    // Process referral bonuses only if this is a new referral
+    if (referrerData && !existingData.referredBy) {
+      const referrerRef = admin
+        .firestore()
+        .collection("users")
+        .doc(referrerData.uid);
+      const referrerGamificationRef = admin
+        .firestore()
+        .collection("users")
+        .doc(referrerData.uid)
+        .collection("gamification")
+        .doc("data");
+
+      const newUserGamificationRef = admin
+        .firestore()
+        .collection("users")
+        .doc(uid)
+        .collection("gamification")
+        .doc("data");
+
+      // Update referrer's referral count
+      await referrerRef.update({
+        referralCount: (referrerData.referralCount || 0) + 1,
+        lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      // Give referrer bonus points (70 points for successful referral)
+      await referrerGamificationRef.set(
+        {
+          ecoPoints: admin.firestore.FieldValue.increment(70),
+          referralBonus: admin.firestore.FieldValue.increment(70),
+          lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      // Give new user welcome bonus points (70 points for being referred)
+      await newUserGamificationRef.set(
+        {
+          ecoPoints: 70,
+          referralWelcomeBonus: 70,
+          lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      console.log(
+        `🎉 Profile referral success: ${referrerData.email} referred ${email}. Both users got 70 eco points!`
+      );
+    }
 
     // Profile is complete after upsert
     const profileComplete = true;

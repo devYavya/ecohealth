@@ -132,6 +132,15 @@ import { generalLimiter } from "../middlewares/rateLimiter.middleware.js";
  *               bloodGroup:
  *                 type: string
  *                 example: O+
+ *               country:
+ *                 type: string
+ *                 default: India
+ *                 example: India
+ *                 description: User's country (determines timezone automatically)
+ *               referredBy:
+ *                 type: string
+ *                 example: JOHNDOE1234
+ *                 description: Referral code of the person who referred this user (optional)
  *     responses:
  *       200:
  *         description: Profile created or updated
@@ -157,6 +166,10 @@ import { generalLimiter } from "../middlewares/rateLimiter.middleware.js";
  *                     gender:
  *                       type: string
  *                     bloodGroup:
+ *                       type: string
+ *                     country:
+ *                       type: string
+ *                     referredBy:
  *                       type: string
  *                     createdAt:
  *                       type: string

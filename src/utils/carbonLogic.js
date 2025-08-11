@@ -136,14 +136,14 @@ const transportEmissions = {
 // Diet emission factors
 const dietEmissions = {
   mealTypes: {
-    meat_based: 4.5, // kg CO2 per meal
+    meat_based: 4.5, 
     dairy_egg_based: 1.2,
     plant_based: 0.5,
   },
-  orderedMealsMultiplier: 2.0, // Additional CF for delivery
+  orderedMealsMultiplier: 2.0, 
   orderedMealsPerWeek: {
     never: 0.0,
-    "1_2_week": 0.3, // meals per day
+    "1_2_week": 0.3, 
     "3_5_week": 0.6,
     "6_9_week": 1.0,
     "10_15_week": 1.8,
@@ -167,13 +167,13 @@ const dietEmissions = {
 // Electricity emission factors
 const electricityEmissions = {
   emissionFactors: {
-    mostly_renewable: 0.1, // kg CO2 per kWh
+    mostly_renewable: 0.1, 
     partially_renewable: 0.5,
     no_renewable: 0.9,
     not_sure: 0.9,
   },
   usageEstimates: {
-    less_100: 75, // kWh per month
+    less_100: 75, 
     "100_200": 150,
     "200_400": 300,
     "400_600": 500,
@@ -186,7 +186,7 @@ const electricityEmissions = {
     "12plus_hours": 1.0,
   },
   appliances: {
-    air_conditioner: 60, // kWh per month
+    air_conditioner: 60, 
     geyser: 30,
     refrigerator: 40,
     washing_machine: 15,
@@ -199,13 +199,13 @@ const electricityEmissions = {
 // Lifestyle emission factors
 const lifestyleEmissions = {
   screenTime: {
-    less_2hrs: 1, // kg CO2 per week
+    less_2hrs: 1, 
     "2_4hrs": 2,
     "4_6hrs": 3,
     "6plus_hrs": 4,
   },
   nonEssentialShopping: {
-    weekly: 10, // kg CO2 per month
+    weekly: 10, 
     few_times_month: 6,
     monthly: 3,
     rarely_never: 0,
@@ -217,21 +217,21 @@ const lifestyleEmissions = {
     rarely_never: 0,
   },
   onlineOrders: {
-    0: 0, // kg CO2 per month
+    0: 0, 
     "1_5": 2,
     "6_10": 4,
     "11_15": 6,
     "15plus": 8,
   },
   wasteManagement: {
-    recycle_compost: 0.8, // multiplier
+    recycle_compost: 0.8, 
     recycle_some: 0.9,
     throw_everything: 1.1,
     not_sure: 1.0,
   },
 };
 
-// Transport Carbon Footprint Calculation
+
 function calculateTransportCF(transportData) {
   const {
     primaryMode,
