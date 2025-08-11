@@ -238,19 +238,6 @@ export const getOnboardingQuestions = async (req, res) => {
           max: 2000,
         },
         {
-          id: "electricity_1b",
-          question: "Or choose an estimate if you're not sure:",
-          field: "monthlyKwhEstimate",
-          type: "single_choice",
-          options: [
-            { value: "less_100", label: "Less than 100 kWh", icon: "💡" },
-            { value: "100_200", label: "100–200 kWh", icon: "🏠" },
-            { value: "200_400", label: "200–400 kWh", icon: "🏡" },
-            { value: "400_600", label: "400–600 kWh", icon: "🏘️" },
-            { value: "600plus", label: "600+ kWh", icon: "🏭" },
-          ],
-        },
-        {
           id: "electricity_2",
           question: "How many people live in your household (including you)?",
           field: "householdSize",
