@@ -169,6 +169,59 @@ export const generateTokenFromUID = async (uid) => {
   }
 };
 
+export const generateTokenFromIdToken = async (googleIdToken) => {
+  try {
+    // 1. Decode Google ID Token (no verify yet)
+    const decoded = jwtDecode(googleIdToken);
+    const { email, name } = decoded;
+
+    if (!email) {
+      throw new Error("INVALID_ID_TOKEN: Email not found in token");
+    }
+
+    // 2. Check if user exists in DB
+    let user = await User.findOne({ email });
+    if (!user) {
+      // Register user with Google provider
+      user = await User.create({
+        name: name || email.split("@")[0],
+        email,
+        provider: "google",
+      });
+    }
+
+    // 3. Update Firebase user photoURL = null
+    await admin.auth().updateUser(user.uid, { photoURL: null });
+
+    // 4. Create custom token from UID
+    const customToken = await admin.auth().createCustomToken(user.uid);
+
+    // 5. Exchange custom token for Firebase ID token
+    const apiKey = process.env.FIREBASE_API_KEY;
+    const response = await axios.post(
+      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${apiKey}`,
+      {
+        token: customToken,
+        returnSecureToken: true,
+      }
+    );
+
+    const { idToken, refreshToken, expiresIn } = response.data;
+
+    return {
+      access_Token: idToken,
+      refresh_Token: refreshToken,
+      expiresIn,
+      uid: user.uid,
+    };
+  } catch (error) {
+    console.error(
+      "❌ Failed to generate token from Google ID token:",
+      error.response?.data || error.message
+    );
+    throw new Error("SOCIAL_LOGIN_TOKEN_FAILED");
+  }
+};
 
 export const refreshAccessToken = async (refreshToken) => {
   const apiKey = process.env.FIREBASE_API_KEY;

@@ -16,19 +16,12 @@ import {
   socialLoginSchema,
   passwordResetSchema,
 } from "../middlewares/validation.middleware.js";
-import {
-  
-  passwordResetLimiter,
-} from "../middlewares/rateLimiter.middleware.js";
+import { passwordResetLimiter } from "../middlewares/rateLimiter.middleware.js";
 
 // Routes with validation and rate limiting
-router.post("/signup",  validateRequest(signupSchema), signup);
+router.post("/signup", validateRequest(signupSchema), signup);
 router.post("/login", validateRequest(loginSchema), login);
-router.post(
-  "/social-login",
-  validateRequest(socialLoginSchema),
-  socialLogin
-);
+router.post("/social-login", validateRequest(socialLoginSchema), socialLogin);
 router.post(
   "/reset-password",
   passwordResetLimiter,
@@ -175,7 +168,7 @@ export default router;
  *   post:
  *     summary: Login or register using Google or Apple
  *     description: |
- *       Accepts an ID token from Google or Apple to authenticate the user.  
+ *       Accepts an ID token from Google or Apple to authenticate the user.
  *       If the user doesn't exist, a new account will be created automatically.
  *     tags: [Auth]
  *     requestBody:
@@ -185,13 +178,8 @@ export default router;
  *           schema:
  *             type: object
  *             required:
- *               - provider
  *               - idToken
  *             properties:
- *               provider:
- *                 type: string
- *                 enum: [google, apple]
- *                 example: google
  *               idToken:
  *                 type: string
  *                 description: ID token obtained from the provider's SDK
@@ -226,7 +214,7 @@ export default router;
  *                       type: string
  *                       example: johndoe@example.com
  *       400:
- *         description: Invalid social login token or provider
+ *         description: Invalid social login token
  *         content:
  *           application/json:
  *             schema:
@@ -237,7 +225,7 @@ export default router;
  *                   example: false
  *                 message:
  *                   type: string
- *                   example: Invalid provider or token
+ *                   example: Invalid token
  *       401:
  *         description: Unauthorized - Token verification failed
  *         content:
