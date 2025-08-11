@@ -4,6 +4,7 @@ import {
   getUserByEmail,
   linkSocialAccount,
   checkUserExists,
+  generateTokenFromUID
 } from "../services/user.service.js";
 import { sendSuccessResponse, sendErrorResponse } from "../utils/response.js";
 import dotenv from "dotenv";
@@ -345,18 +346,24 @@ export const socialLogin = async (req, res, next) => {
     }
 
     // ✅ 4. Generate Firebase custom token (if using signInWithCustomToken on frontend)
-    const customToken = await admin.auth().createCustomToken(uid);
+   const { access_Token, refresh_Token } = await generateTokenFromUID(uid);
 
-    return sendSuccessResponse(res, 200, "Social login successful!", {
-      firebaseToken: customToken,
-      user: {
-        uid,
-        email,
-        name: name || email.split("@")[0],
-        picture: picture || null,
-        provider: decoded.firebase?.sign_in_provider,
-      },
-    });
+return sendSuccessResponse(res, 200, "Social login successful!", {
+  accessToken: access_Token,
+  refreshToken: refresh_Token,
+  user: {
+    uid,
+    email,
+    name: name || email.split("@")[0],
+    picture: picture || null,
+    profileComplete: !!(
+      userDoc.data()?.name &&
+      userDoc.data()?.age &&
+      userDoc.data()?.gender &&
+      userDoc.data()?.bloodGroup
+    ),
+  },
+});
   } catch (error) {
     console.error("❌ Social login failed:", error.message);
 
