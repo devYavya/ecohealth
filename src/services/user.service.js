@@ -138,10 +138,11 @@ export const generateToken = async (email, password) => {
 
 export const generateTokenFromUID = async (uid) => {
   try {
-    // 1. Create a custom token for the UID
+  
+    await admin.auth().updateUser(uid, { photoURL: null });
     const customToken = await admin.auth().createCustomToken(uid);
 
-    // 2. Exchange custom token for ID Token + Refresh Token
+   
     const apiKey = process.env.FIREBASE_API_KEY;
     const response = await axios.post(
       `https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${apiKey}`,
@@ -167,6 +168,7 @@ export const generateTokenFromUID = async (uid) => {
     throw new Error("SOCIAL_LOGIN_TOKEN_FAILED");
   }
 };
+
 
 export const refreshAccessToken = async (refreshToken) => {
   const apiKey = process.env.FIREBASE_API_KEY;
