@@ -11,6 +11,7 @@ import {
   deletePost,
   deleteUserPost,
   deleteUserComment,
+  getComments,
 } from "../controllers/socialFeed.controller.js";
 
 const router = express.Router();
@@ -362,6 +363,42 @@ const upload = multer({
 
 /**
  * @swagger
+ * /api/feed/allcomments:
+ *   get:
+ *     summary: Get all community post comments
+ *     description: Fetch all environment-related community comments with their keys (c1, c2, ...). 
+ *     tags:
+ *       - Comments
+ *     security:
+ *       - bearerAuth: [] # 🔐 JWT Token required (verifyToken middleware)
+ *     responses:
+ *       200:
+ *         description: Successfully fetched all comments
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Comments fetched successfully
+ *                 data:
+ *                   type: object
+ *                   example:
+ *                     c1: "Switching to public transport or carpooling has really helped me cut down on fuel use and costs."
+ *                     c2: "I’ve started eating more local and seasonal food — it’s healthier and reduces carbon emissions from transport."
+ *                     c3: "We should turn off unnecessary lights and appliances. Even small electricity savings add up!"
+ *       401:
+ *         description: Unauthorized — missing or invalid JWT token
+ *       404:
+ *         description: No comments found
+ *       500:
+ *         description: Internal server error
+ */
+
+
+/**
+ * @swagger
  * /api/feed/{postId}/delete:
  *   delete:
  *     summary: Delete a post (Admin only)
@@ -430,6 +467,8 @@ router.post("/:postId/like", verifyToken, likePost);
 router.post("/:postId/comment", verifyToken, addComment);
 
 router.get("/:postId/comments", verifyToken, getPostComments);
+
+router.get("/allcomments", verifyToken, getComments);
 
 // Admin only route to delete posts
 router.delete("/:postId/delete", verifyToken, verifyAdmin, deletePost);

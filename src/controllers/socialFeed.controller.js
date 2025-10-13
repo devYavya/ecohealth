@@ -748,3 +748,32 @@ export const deleteUserComment = async (req, res) => {
     });
   }
 };
+
+
+export const getComments = async (req, res) => {
+  try {
+    // ✅ use static "default" document (the one you uploaded)
+    const docId = "default";
+
+    if (!docId || typeof docId !== "string" || docId.trim() === "") {
+      return res.status(400).json({ error: "Invalid document ID" });
+    }
+
+    const docRef = db.collection("community_comments").doc(docId);
+    const docSnap = await docRef.get();
+
+    if (!docSnap.exists) {
+      return res.status(404).json({ error: "No comments found" });
+    }
+
+    const comments = docSnap.data();
+
+    return res.status(200).json({
+      message: "Comments fetched successfully",
+      data: comments,
+    });
+  } catch (error) {
+    console.error("getPostComments error:", error);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+};
