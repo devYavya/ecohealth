@@ -752,28 +752,65 @@ export const deleteUserComment = async (req, res) => {
 
 export const getComments = async (req, res) => {
   try {
-    // ✅ use static "default" document (the one you uploaded)
+    // Static doc ID for comments
     const docId = "default";
+
+    // Example: user ID could be static or dynamic (e.g., from token or params)
+    const { uid } = req.user;
+    const userId = uid;
+
 
     if (!docId || typeof docId !== "string" || docId.trim() === "") {
       return res.status(400).json({ error: "Invalid document ID" });
     }
 
-    const docRef = db.collection("community_comments").doc(docId);
-    const docSnap = await docRef.get();
+    // 1️⃣ Fetch comments from "community_comments/default"
+    const commentsRef = db.collection("community_comments").doc(docId);
+    const commentsSnap = await commentsRef.get();
 
-    if (!docSnap.exists) {
+    if (!commentsSnap.exists) {
       return res.status(404).json({ error: "No comments found" });
     }
 
-    const comments = docSnap.data();
+    const commentsData = commentsSnap.data();
+
+    // 2️⃣ Fetch carbon footprint from "users/{userId}/carbonProfile/baseline"
+    const carbonRef = db
+      .collection("users")
+      .doc(userId)
+      .collection("carbonProfile")
+      .doc("baseline");
+
+    const carbonSnap = await carbonRef.get();
+
+    if (!carbonSnap.exists) {
+      return res.status(404).json({ error: "No carbon profile found" });
+    }
+
+    const carbonData = carbonSnap.data();
+    const totalCarbonFootprint = carbonData?.totalCarbonFootprint;
+    const unit = carbonData?.unit || "kg CO2e per day";
+        const updatedComments = {
+          ...commentsData,
+          c9: `My reduced carbon footprint is ${totalCarbonFootprint} ${unit}`,
+        };
+
+    // 3️⃣ Combine into one response
+    const footprintMessage = totalCarbonFootprint
+      ? `C9 says: My reduced carbon footprint is ${totalCarbonFootprint} ${unit}`
+      : "C9 says: Carbon footprint data not available.";
 
     return res.status(200).json({
-      message: "Comments fetched successfully",
-      data: comments,
+      message: "Comments and carbon footprint fetched successfully",
+      data: {
+        comments: updatedComments,
+        footprintMessage,
+        totalCarbonFootprint,
+        unit,
+      },
     });
   } catch (error) {
-    console.error("getPostComments error:", error);
+    console.error("getComments error:", error);
     return res.status(500).json({ error: "Internal Server Error" });
   }
 };

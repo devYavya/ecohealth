@@ -1,5 +1,9 @@
 import { admin } from "../config/firebase.js";
-import { calculateCarbonFootprint } from "../utils/carbonLogic.js";
+import {
+  calculateCarbonFootprint,
+  calculateCarbonCategory,
+  generateRecommendations
+} from "../utils/carbonLogic.js";
 
 const FieldValue = admin.firestore.FieldValue;
 
@@ -42,7 +46,7 @@ export const getOnboardingQuestions = async (req, res) => {
             { value: "cng", label: "CNG", icon: "🔥" },
             { value: "electric", label: "Electric (EV)", icon: "⚡" },
             { value: "hybrid", label: "Hybrid", icon: "🔋" },
-            { value: "not_sure", label: "Not Sure", icon: "❓" },
+            { value: "not_sure", label: "Not sure", icon: "❓" },
           ],
         },
         {
@@ -85,39 +89,7 @@ export const getOnboardingQuestions = async (req, res) => {
         },
         {
           id: "transport_5",
-          question: "How many people usually travel with you?",
-          field: "passengers",
-          type: "single_choice",
-          options: [
-            { value: "alone", label: "I travel alone", icon: "👤" },
-            { value: "one_passenger", label: "One passenger", icon: "👥" },
-            {
-              value: "two_plus_passengers",
-              label: "Two or more passengers",
-              icon: "👨‍👩‍👧‍👦",
-            },
-            {
-              value: "shared_public",
-              label: "It's shared/public transport",
-              icon: "🚌",
-            },
-          ],
-        },
-        {
-          id: "transport_6",
-          question: "Approximately how many flights do you take per year?",
-          field: "flightsPerYear",
-          type: "single_choice",
-          options: [
-            { value: "0", label: "0", icon: "🚫" },
-            { value: "1_2", label: "1–2", icon: "✈️" },
-            { value: "3_5", label: "3–5", icon: "🛫" },
-            { value: "6plus", label: "6+", icon: "🌍" },
-          ],
-        },
-        {
-          id: "transport_7",
-          question: "What is your vehicle's approximate mileage (if known)?",
+          question: "What is your vehicle’s approximate mileage (if known)?",
           field: "mileage",
           type: "single_choice",
           condition: {
@@ -132,105 +104,56 @@ export const getOnboardingQuestions = async (req, res) => {
             { value: "not_sure", label: "Not sure", icon: "❓" },
           ],
         },
+        {
+          id: "transport_6",
+          question: "Approximately how many flights do you take per year?",
+          field: "flightsPerYear",
+          type: "multi_input",
+          description: "Enter number of flights by category and class.",
+          categories: [
+            { name: "Short Haul (1–3 hrs)", field: "shortHaul" },
+            { name: "Medium Haul (4–7 hrs)", field: "mediumHaul" },
+            { name: "Long Haul (8+ hrs)", field: "longHaul" },
+          ],
+          classes: ["Economy", "Premium Economy", "Business", "First"],
+        },
       ],
+
       diet: [
         {
           id: "diet_1",
-          question: "On average, how many meals do you eat per day?",
-          field: "mealsPerDay",
+          question: "What best describes your diet?",
+          field: "dietType",
           type: "single_choice",
           options: [
-            { value: 1, label: "1", icon: "🍽️" },
-            { value: 2, label: "2", icon: "🍽️🍽️" },
-            { value: 3, label: "3", icon: "🍽️🍽️🍽️" },
-            { value: 4, label: "4+", icon: "🍽️+" },
-          ],
-        },
-        {
-          id: "diet_2a",
-          question:
-            "What percentage of your meals consist of meat-based meals?",
-          field: "meatPercentage",
-          type: "slider",
-          min: 0,
-          max: 100,
-          step: 5,
-          unit: "%",
-          description: "Beef, chicken, mutton, fish",
-        },
-        {
-          id: "diet_2b",
-          question:
-            "What percentage of your meals consist of dairy & egg-based meals?",
-          field: "dairyPercentage",
-          type: "slider",
-          min: 0,
-          max: 100,
-          step: 5,
-          unit: "%",
-          description: "Milk, paneer, cheese, yogurt, eggs",
-        },
-        {
-          id: "diet_2c",
-          question:
-            "What percentage of your meals consist of plant-based meals?",
-          field: "plantPercentage",
-          type: "slider",
-          min: 0,
-          max: 100,
-          step: 5,
-          unit: "%",
-          description: "Grains, pulses, vegetables, fruits, nuts",
-        },
-        {
-          id: "diet_3",
-          question: "How often do you eat outside or order food online?",
-          field: "orderedMealsFreq",
-          type: "single_choice",
-          options: [
-            { value: "never", label: "Never", icon: "🚫" },
-            { value: "1_2_week", label: "1–2 meals per week", icon: "🍕" },
-            { value: "3_5_week", label: "3–5 meals per week", icon: "🍔" },
-            { value: "6_9_week", label: "6–9 meals per week", icon: "🛍️" },
-            { value: "10_15_week", label: "10–15 meals per week", icon: "📦" },
-            { value: "16_20_week", label: "16–20 meals per week", icon: "🚚" },
+            { value: "vegan", label: "Vegan 🌱" },
+            { value: "vegetarian", label: "Vegetarian 🥗" },
+            { value: "pescetarian", label: "Pescetarian (Fish eater) 🐟" },
+            { value: "non_veg_no_beef", label: "Non-veg (but no beef) 🍗" },
             {
-              value: "20plus_week",
-              label: "More than 20 meals per week",
-              icon: "🔥",
+              value: "non_veg_with_beef",
+              label: "Non-veg (including beef) 🥩",
             },
           ],
         },
         {
-          id: "diet_4",
-          question: "How often do you eat processed, packaged, or junk food?",
-          field: "junkFoodFreq",
+          id: "diet_2",
+          question: "On average, how many meals do you eat per day?",
+          field: "mealsPerDay",
           type: "single_choice",
           options: [
-            { value: "daily", label: "Daily", icon: "🍟" },
-            { value: "few_times_week", label: "Few times a week", icon: "🥤" },
-            { value: "occasionally", label: "Occasionally", icon: "🍿" },
-            { value: "rarely_never", label: "Rarely/Never", icon: "🥗" },
-          ],
-        },
-        {
-          id: "diet_5",
-          question: "How often do you waste food at home?",
-          field: "foodWaste",
-          type: "single_choice",
-          options: [
-            { value: "never", label: "Never", icon: "✅" },
-            { value: "rarely", label: "Rarely", icon: "🟢" },
-            { value: "sometimes", label: "Sometimes", icon: "🟡" },
-            { value: "often", label: "Often", icon: "🔴" },
+            { value: 1, label: "1 🍽️" },
+            { value: 2, label: "2 🍽️🍽️" },
+            { value: 3, label: "3 🍽️🍽️🍽️" },
+            { value: 4, label: "4+ 🍽️+" },
           ],
         },
       ],
+
       electricity: [
         {
-          id: "electricity_1a",
-          question:
-            "What is your average monthly electricity usage in kilowatt-hours (kWh)?",
+          id: "electricity_1",
+          question: "What is your average monthly electricity usage (kWh)?",
           field: "monthlyKwh",
           type: "number_input",
           placeholder: "Enter kWh (check your electricity bill)",
@@ -241,159 +164,55 @@ export const getOnboardingQuestions = async (req, res) => {
           id: "electricity_2",
           question: "How many people live in your household (including you)?",
           field: "householdSize",
-          type: "single_choice",
-          options: [
-            { value: 1, label: "1", icon: "👤" },
-            { value: 2, label: "2", icon: "👥" },
-            { value: 3, label: "3", icon: "👨‍👩‍👧" },
-            { value: 4, label: "4+", icon: "👨‍👩‍👧‍👦" },
-          ],
-        },
-        {
-          id: "electricity_3",
-          question:
-            "How many hours per day do you typically spend at home (awake)?",
-          field: "timeAtHome",
-          type: "single_choice",
-          options: [
-            { value: "4_hours_less", label: "4 hours or less", icon: "⏰" },
-            { value: "5_8_hours", label: "5–8 hours", icon: "🕐" },
-            { value: "9_12_hours", label: "9–12 hours", icon: "🕒" },
-            { value: "12plus_hours", label: "More than 12 hours", icon: "🕕" },
-          ],
-        },
-        {
-          id: "electricity_4",
-          question: "Which appliances do you regularly use at home?",
-          field: "appliances",
-          type: "multi_select",
-          options: [
-            { value: "air_conditioner", label: "Air Conditioner", icon: "❄️" },
-            { value: "geyser", label: "Geyser/Water Heater", icon: "🚿" },
-            { value: "refrigerator", label: "Refrigerator", icon: "🧊" },
-            { value: "washing_machine", label: "Washing Machine", icon: "👕" },
-            { value: "microwave", label: "Microwave", icon: "📡" },
-            {
-              value: "laptop_desktop",
-              label: "Laptop/Desktop (4+ hrs/day)",
-              icon: "💻",
-            },
-            { value: "tv_console", label: "TV or Game Console", icon: "📺" },
-          ],
-        },
-        {
-          id: "electricity_5",
-          question:
-            "Do you use renewable energy (solar/green electricity) at home?",
-          field: "renewableEnergy",
-          type: "single_choice",
-          options: [
-            {
-              value: "mostly_renewable",
-              label: "Yes, mostly renewable",
-              icon: "☀️",
-            },
-            {
-              value: "partially_renewable",
-              label: "Partially renewable",
-              icon: "🌱",
-            },
-            { value: "no_renewable", label: "No", icon: "🔌" },
-            { value: "not_sure", label: "Not sure", icon: "❓" },
-          ],
+          type: "number_input",
+          min: 1,
+          max: 20,
         },
       ],
+
       lifestyle: [
         {
           id: "lifestyle_1",
-          question:
-            "How much time do you spend on screens per day (phone, laptop, TV, etc.)?",
-          field: "screenTime",
-          type: "single_choice",
-          options: [
-            { value: "less_2hrs", label: "Less than 2 hours", icon: "📱" },
-            { value: "2_4hrs", label: "2–4 hours", icon: "💻" },
-            { value: "4_6hrs", label: "4–6 hours", icon: "🖥️" },
-            { value: "6plus_hrs", label: "More than 6 hours", icon: "📺" },
-          ],
-        },
-        {
-          id: "lifestyle_2",
           question:
             "How often do you shop for non-essential items (gadgets, fashion, gifts)?",
           field: "nonEssentialShopping",
           type: "single_choice",
           options: [
-            { value: "weekly", label: "Weekly", icon: "🛍️" },
-            {
-              value: "few_times_month",
-              label: "Few times a month",
-              icon: "🛒",
-            },
-            { value: "monthly", label: "Once a month", icon: "📅" },
-            { value: "rarely_never", label: "Rarely/Never", icon: "🚫" },
+            { value: "weekly", label: "Weekly 🛍️" },
+            { value: "few_times_month", label: "Few times a month 🛒" },
+            { value: "monthly", label: "Once a month 📅" },
+            { value: "rarely_never", label: "Rarely/Never 🚫" },
           ],
         },
         {
-          id: "lifestyle_3",
+          id: "lifestyle_2",
           question:
             "How often do you buy clothes, shoes, or fashion accessories?",
           field: "fashionShopping",
           type: "single_choice",
           options: [
-            {
-              value: "more_once_month",
-              label: "More than once a month",
-              icon: "👗",
-            },
-            {
-              value: "every_1_2_months",
-              label: "Once every 1–2 months",
-              icon: "👕",
-            },
-            {
-              value: "every_3plus_months",
-              label: "Once every 3+ months",
-              icon: "👖",
-            },
-            { value: "rarely_never", label: "Rarely/Never", icon: "🚫" },
+            { value: "more_once_month", label: "More than once a month 👗" },
+            { value: "every_1_2_months", label: "Once every 1–2 months 👕" },
+            { value: "every_3plus_months", label: "Once every 3+ months 👖" },
+            { value: "rarely_never", label: "Rarely/Never 🚫" },
           ],
         },
         {
-          id: "lifestyle_4",
-          question: "How many online orders do you receive per month?",
-          field: "onlineOrders",
-          type: "single_choice",
-          options: [
-            { value: "0", label: "0", icon: "🚫" },
-            { value: "1_5", label: "1–5", icon: "📦" },
-            { value: "6_10", label: "6–10", icon: "📦📦" },
-            { value: "11_15", label: "11–15", icon: "📦📦📦" },
-            { value: "15plus", label: "15+", icon: "🚚" },
-          ],
-        },
-        {
-          id: "lifestyle_5",
+          id: "lifestyle_3",
           question: "How do you manage household waste?",
           field: "wasteManagement",
           type: "single_choice",
           options: [
             {
               value: "recycle_compost",
-              label: "Mostly recycle and compost",
-              icon: "♻️",
+              label: "Mostly recycle and compost ♻️",
             },
-            {
-              value: "recycle_some",
-              label: "Recycle some, throw some",
-              icon: "🗂️",
-            },
+            { value: "recycle_some", label: "Recycle some, throw some 🗂️" },
             {
               value: "throw_everything",
-              label: "Throw everything together",
-              icon: "🗑️",
+              label: "Throw everything together 🗑️",
             },
-            { value: "not_sure", label: "Not sure", icon: "❓" },
+            { value: "not_sure", label: "Not sure ❓" },
           ],
         },
       ],
@@ -402,7 +221,7 @@ export const getOnboardingQuestions = async (req, res) => {
     return res.status(200).json({
       questions,
       totalQuestions: Object.values(questions).flat().length,
-      message: "Comprehensive onboarding questions retrieved successfully",
+      message: "EcoCue onboarding questions retrieved successfully",
     });
   } catch (error) {
     console.error("getOnboardingQuestions error:", error);
@@ -411,6 +230,7 @@ export const getOnboardingQuestions = async (req, res) => {
       .json({ error: "Failed to fetch onboarding questions." });
   }
 };
+
 
 // Validate onboarding responses for new structure
 const validateOnboardingData = (onboardingData) => {
@@ -494,115 +314,160 @@ export const submitOnboarding = async (req, res) => {
     const uid = req.user.uid;
     const onboardingData = req.body;
 
-    // Check that onboardingData is a plain object
     if (typeof onboardingData !== "object" || Array.isArray(onboardingData)) {
       return res.status(400).json({ error: "Invalid onboarding data format" });
     }
 
-    // Validate onboarding data completeness
-    const validation = validateOnboardingData(onboardingData);
-    if (!validation.isValid) {
-      return res.status(400).json({
-        error: "Incomplete onboarding data",
-        details: validation.message,
-        missingFields: validation.missingFields,
-      });
-    }
-
-    // Structure data for new carbon logic
+    // 🧠 Prepare structured onboarding profile
     const profileData = {
       transport: {
         primaryMode: onboardingData.primaryMode,
         fuelType: onboardingData.fuelType,
         evChargingSource: onboardingData.evChargingSource,
         dailyDistance: onboardingData.dailyDistance,
-        passengers: onboardingData.passengers,
-        flightsPerYear: onboardingData.flightsPerYear,
         mileage: onboardingData.mileage,
+        flightsPerYear: onboardingData.flightsPerYear || {}, // short, medium, long
       },
       diet: {
+        dietType: onboardingData.dietType,
         mealsPerDay: onboardingData.mealsPerDay,
-        meatPercentage: onboardingData.meatPercentage || 0,
-        dairyPercentage: onboardingData.dairyPercentage || 0,
-        plantPercentage: onboardingData.plantPercentage || 0,
-        orderedMealsFreq: onboardingData.orderedMealsFreq,
-        junkFoodFreq: onboardingData.junkFoodFreq,
-        foodWaste: onboardingData.foodWaste,
       },
       electricity: {
         monthlyKwh: onboardingData.monthlyKwh,
-        monthlyKwhEstimate: onboardingData.monthlyKwhEstimate,
         householdSize: onboardingData.householdSize,
-        timeAtHome: onboardingData.timeAtHome,
-        appliances: onboardingData.appliances || [],
-        renewableEnergy: onboardingData.renewableEnergy,
+        country: onboardingData.country || "India",
       },
       lifestyle: {
-        screenTime: onboardingData.screenTime,
         nonEssentialShopping: onboardingData.nonEssentialShopping,
         fashionShopping: onboardingData.fashionShopping,
-        onlineOrders: onboardingData.onlineOrders,
         wasteManagement: onboardingData.wasteManagement,
       },
     };
 
-    // Sanitize data - remove undefined values that Firestore can't handle
+    // 🔹 Sanitize Firestore input
     const sanitizeForFirestore = (obj) => {
-      const sanitized = {};
-      for (const [key, value] of Object.entries(obj)) {
-        if (value !== undefined && value !== null) {
-          if (typeof value === "object" && !Array.isArray(value)) {
-            const sanitizedNested = sanitizeForFirestore(value);
-            if (Object.keys(sanitizedNested).length > 0) {
-              sanitized[key] = sanitizedNested;
-            }
-          } else {
-            sanitized[key] = value;
-          }
+      const clean = {};
+      for (const [k, v] of Object.entries(obj)) {
+        if (v !== undefined && v !== null) {
+          clean[k] =
+            typeof v === "object" && !Array.isArray(v)
+              ? sanitizeForFirestore(v)
+              : v;
         }
       }
-      return sanitized;
+      return clean;
     };
 
-    const sanitizedProfileData = sanitizeForFirestore(profileData);
+    const sanitizedProfile = sanitizeForFirestore(profileData);
 
-    // Save onboarding profile
+    // 🔥 Save onboarding profile
     const onboardingRef = admin
       .firestore()
       .doc(`users/${uid}/onboardingProfile/data`);
     await onboardingRef.set({
-      ...sanitizedProfileData,
+      ...sanitizedProfile,
       completedAt: FieldValue.serverTimestamp(),
-      version: "2.0", // Updated version for new structure
-      questionsCompleted: Object.values(sanitizedProfileData).flat().length,
+      version: "3.1", // minor version bump
     });
 
-    // Calculate baseline carbon footprint using new logic
-    const carbonFootprint = calculateCarbonFootprint(profileData);
+    // ✅ Fetch emission factors from Firestore
+    const db = admin.firestore();
+
+    // 1️⃣ Flight emissions
+    const flightRef = db.collection("flight_emissions");
+    const flightSnap = await flightRef.get();
+    const flightFactors = {};
+    flightSnap.forEach((doc) => (flightFactors[doc.id] = doc.data()));
+
+    // 2️⃣ Electricity emissions
+    const countryRef = db
+      .collection("electricity_emissions")
+      .doc(profileData.electricity.country);
+    const countryDoc = await countryRef.get();
+    const electricityFactor = countryDoc.exists
+      ? countryDoc.data().factor
+      : 0.4;
+
+    // 3️⃣ Food emissions
+    const foodRef = db
+      .collection("food_emission_factors")
+      .doc(profileData.diet.dietType || "average");
+    const foodDoc = await foodRef.get();
+    const foodFactor = foodDoc.exists ? foodDoc.data().factor : 2.0; // fallback
+
+    // 🌍 Calculate Carbon Footprint
+    const breakdown = {};
+
+    // ✈️ Flights
+    let flightTotal = 0;
+    const { flightsPerYear } = profileData.transport;
+    for (const [range, data] of Object.entries(flightsPerYear || {})) {
+      const classType = data.class || "Economy";
+      const count = parseFloat(data.count || 0);
+      const factor =
+        flightFactors[range]?.classes?.[classType]?.finalFactor || 0;
+      flightTotal += (count * factor) / 365; // per day
+    }
+    breakdown.flights = flightTotal;
+
+    // 🚗 Transport
+    const transportDistanceMap = {
+      "0_5km": 2.5,
+      "6_15km": 10,
+      "16_30km": 23,
+      "31_50km": 40,
+      "51plus_km": 60,
+    };
+    const distance =
+      transportDistanceMap[profileData.transport.dailyDistance] || 10;
+    let transportFactor = 0.2;
+    if (profileData.transport.fuelType === "diesel") transportFactor = 0.27;
+    if (profileData.transport.fuelType === "petrol") transportFactor = 0.24;
+    if (profileData.transport.fuelType === "electric") transportFactor = 0.08;
+    breakdown.transport = distance * transportFactor;
+
+    // 🍽️ Diet
+    const dietMap = {
+      vegan: 2.0,
+      vegetarian: 2.5,
+      pescetarian: 3.0,
+      non_veg_no_beef: 3.5,
+      non_veg_with_beef: 5.0,
+    };
+    breakdown.diet = dietMap[profileData.diet.dietType] || foodFactor;
+
+    // ⚡ Electricity
+    const kwh = profileData.electricity.monthlyKwh || 300;
+    const people = profileData.electricity.householdSize || 3;
+    const dailyElectricity = kwh / people / 30;
+    breakdown.electricity = dailyElectricity * electricityFactor;
+
+
+    // 🧭 No lifestyle emissions yet
+    breakdown.lifestyle = 0; // placeholder for future integration
+
+    // 🌍 Total carbon
+    const total = Object.values(breakdown).reduce((a, b) => a + b, 0);
+
     const carbonData = {
-      totalCarbonFootprint: carbonFootprint.total,
-      breakdown: carbonFootprint.breakdown,
-      calculatedAt: FieldValue.serverTimestamp(),
+      totalCarbonFootprint: total,
+      breakdown,
       unit: "kg CO2e per day",
-      category: getCarbonCategory(carbonFootprint.total),
+      category: calculateCarbonCategory(total),
+      calculatedAt: FieldValue.serverTimestamp(),
     };
 
-    // Save to main user document or carbonProfile
-    const carbonRef = admin
-      .firestore()
-      .doc(`users/${uid}/carbonProfile/baseline`);
+    // Save carbon profile
+    const carbonRef = db.doc(`users/${uid}/carbonProfile/baseline`);
     await carbonRef.set(carbonData);
 
-    // Initialize or update gamification data with onboarding bonus
-    const gamificationRef = admin
-      .firestore()
-      .doc(`users/${uid}/gamification/data`);
-
+    // 🎮 Gamification (same logic)
+    const gamificationRef = db.doc(`users/${uid}/gamification/data`);
     const gamificationDoc = await gamificationRef.get();
+
     if (!gamificationDoc.exists) {
-      // First time user - create new gamification data
       await gamificationRef.set({
-        ecoPoints: 50, // Bonus points for completing onboarding
+        ecoPoints: 50,
         onboardingBonus: 50,
         level: 1,
         totalChallengesCompleted: 0,
@@ -610,34 +475,21 @@ export const submitOnboarding = async (req, res) => {
         lastUpdated: FieldValue.serverTimestamp(),
       });
     } else {
-      // Existing user - add onboarding bonus to existing points
-      const existingData = gamificationDoc.data();
-
-      // Check if onboarding bonus was already given
-      if (!existingData.onboardingBonus) {
+      const existing = gamificationDoc.data();
+      if (!existing.onboardingBonus) {
         await gamificationRef.update({
           ecoPoints: FieldValue.increment(50),
           onboardingBonus: 50,
           lastUpdated: FieldValue.serverTimestamp(),
         });
-        console.log(
-          `🎉 Added 50 onboarding bonus points to user ${uid}. Total points: ${
-            (existingData.ecoPoints || 0) + 50
-          }`
-        );
-      } else {
-        console.log(`ℹ️ User ${uid} already received onboarding bonus`);
       }
     }
 
     return res.status(200).json({
-      message: "Onboarding completed successfully!",
+      message: "EcoCue onboarding completed successfully!",
       carbonData,
       gamificationBonus: 50,
-      recommendations: generateRecommendations(
-        profileData,
-        carbonFootprint.total
-      ),
+      recommendations: generateRecommendations(profileData, total),
     });
   } catch (error) {
     console.error("submitOnboarding error:", error);
@@ -657,51 +509,51 @@ const getCarbonCategory = (carbonFootprint) => {
 };
 
 // Helper function to generate personalized recommendations
-const generateRecommendations = (profileData, carbonFootprint) => {
-  const recommendations = [];
+// const generateRecommendations = (profileData, carbonFootprint) => {
+//   const recommendations = [];
 
-  // Transport recommendations
-  if (profileData.transport.primaryMode === "personal_car") {
-    recommendations.push({
-      category: "Transportation",
-      suggestion:
-        "Consider using public transport or carpooling 2-3 days per week",
-      potentialSaving: "3-5 kg CO2e per day",
-    });
-  }
+//   // Transport recommendations
+//   if (profileData.transport.primaryMode === "personal_car") {
+//     recommendations.push({
+//       category: "Transportation",
+//       suggestion:
+//         "Consider using public transport or carpooling 2-3 days per week",
+//       potentialSaving: "3-5 kg CO2e per day",
+//     });
+//   }
 
-  // Diet recommendations
-  if ((profileData.diet.meatPercentage || 0) > 50) {
-    recommendations.push({
-      category: "Diet",
-      suggestion:
-        "Try reducing meat consumption by 20-30% and increase plant-based meals",
-      potentialSaving: "1-3 kg CO2e per day",
-    });
-  }
+//   // Diet recommendations
+//   if ((profileData.diet.meatPercentage || 0) > 50) {
+//     recommendations.push({
+//       category: "Diet",
+//       suggestion:
+//         "Try reducing meat consumption by 20-30% and increase plant-based meals",
+//       potentialSaving: "1-3 kg CO2e per day",
+//     });
+//   }
 
-  // Electricity recommendations
-  if (profileData.electricity.appliances?.includes("air_conditioner")) {
-    recommendations.push({
-      category: "Energy",
-      suggestion:
-        "Set AC temperature to 24°C and use fans to supplement cooling",
-      potentialSaving: "1-2 kg CO2e per day",
-    });
-  }
+//   // Electricity recommendations
+//   if (profileData.electricity.appliances?.includes("air_conditioner")) {
+//     recommendations.push({
+//       category: "Energy",
+//       suggestion:
+//         "Set AC temperature to 24°C and use fans to supplement cooling",
+//       potentialSaving: "1-2 kg CO2e per day",
+//     });
+//   }
 
-  // Lifestyle recommendations
-  if (profileData.lifestyle.wasteManagement === "throw_everything") {
-    recommendations.push({
-      category: "Waste",
-      suggestion:
-        "Start with basic waste segregation - separate dry and wet waste",
-      potentialSaving: "0.5-1 kg CO2e per day",
-    });
-  }
+//   // Lifestyle recommendations
+//   if (profileData.lifestyle.wasteManagement === "throw_everything") {
+//     recommendations.push({
+//       category: "Waste",
+//       suggestion:
+//         "Start with basic waste segregation - separate dry and wet waste",
+//       potentialSaving: "0.5-1 kg CO2e per day",
+//     });
+//   }
 
-  return recommendations.slice(0, 3); // Return top 3 recommendations
-};
+//   return recommendations.slice(0, 3); // Return top 3 recommendations
+// };
 
 // Get onboarding progress
 export const getOnboardingProgress = async (req, res) => {

@@ -1,86 +1,83 @@
-// // src/utils/carbonLogic.js
 
-// // Define emission values in kg CO2e per day for each option
-// const carbonEmissionMapping = {
-//   transportMode: {
-//     public_transport: 1.2,
-//     car: 4.8,
-//     bike: 0.5,
-//     walk: 0.1,
-//     electric_vehicle: 2.0,
-//   },
-//   dietType: {
-//     vegan: 1.5,
-//     vegetarian: 2.0,
-//     non_veg: 5.0,
-//     eggetarian: 3.0,
-//   },
-//   electricityUsage: {
-//     "0-2_hours_ac": 1.0,
-//     "2-4_hours_ac": 2.0,
-//     "4-6_hours_ac": 3.5,
-//     "6+_hours_ac": 5.0,
-//     // Simplified daily log values
-//     low: 1.0,
-//     medium: 2.5,
-//     high: 4.0,
-//   },
-//   digitalHours: {
-//     "0-2_hours": 0.3,
-//     "2-4_hours": 0.6,
-//     "4-6_hours": 1.0,
-//     "6+_hours": 1.5,
-//     "8+_hours": 2.0,
-//     // Simplified daily log values
-//     low: 0.4,
-//     medium: 1.0,
-//     high: 1.8,
-//   },
-// };
 
-// // Function to calculate total CO2e based on onboarding answers
-// export function calculateCarbonFootprint(onboardingData) {
-//   let totalCarbon = 0;
+// src/utils/carbonUtils.js
 
-//   for (const [key, value] of Object.entries(onboardingData)) {
-//     if (carbonEmissionMapping[key] && carbonEmissionMapping[key][value]) {
-//       totalCarbon += carbonEmissionMapping[key][value];
-//     }
-//   }
+/**
+ * Categorize total carbon footprint into Low / Moderate / High / Very High
+ * @param {number} total - daily carbon footprint (kg CO2e/day)
+ * @returns {string} category
+ */
+export const calculateCarbonCategory = (total) => {
+  if (total < 5) return "Low";              // Minimal footprint
+  if (total >= 5 && total < 15) return "Moderate"; // Typical average user
+  if (total >= 15 && total < 25) return "High";     // Heavy lifestyle
+  return "Very High";                       // Frequent flights, non-veg, AC, etc.
+};
 
-//   return parseFloat(totalCarbon.toFixed(2)); // Return with 2 decimal precision
-// }
+/**
+ * Generate personalized recommendations based on onboarding answers
+ * and emission breakdown.
+ * @param {object} profileData - user onboarding data
+ * @param {number} totalCarbon - total daily CO2e footprint
+ * @returns {string[]} actionable tips
+ */
+export const generateRecommendations = (profileData, totalCarbon) => {
+  const recs = [];
 
-// // Function to calculate carbon footprint from daily log
-// export function calculateCarbonFootprintFromDailyLog(dailyLogData) {
-//   let totalCarbon = 0;
+  // 🚗 Transport
+  if (
+    profileData.transport.primaryMode === "personal_car" ||
+    profileData.transport.fuelType === "diesel"
+  ) {
+    recs.push("Try using public transport or carpool 2–3 times a week to cut fuel emissions.");
+  }
+  if (profileData.transport.fuelType === "electric" &&
+      profileData.transport.evChargingSource === "home_grid") {
+    recs.push("Consider switching to renewable electricity for charging your EV.");
+  }
+  if (profileData.transport.dailyDistance === "51plus_km") {
+    recs.push("Work remotely or cluster errands to reduce long daily commutes.");
+  }
 
-//   // Map daily log field names to carbon emission mapping keys
-//   const fieldMapping = {
-//     transportInput: "transportMode",
-//     dietInput: "dietType",
-//     electricityInput: "electricityUsage",
-//     digitalInput: "digitalHours",
-//   };
+  // ✈️ Flights
+  if (profileData.transport.flightsPerYear?.["Long-range"]?.count > 2) {
+    recs.push("Limit long-distance flights or offset emissions with verified carbon projects.");
+  }
 
-//   for (const [logField, logValue] of Object.entries(dailyLogData)) {
-//     const mappingKey = fieldMapping[logField];
-//     if (
-//       mappingKey &&
-//       carbonEmissionMapping[mappingKey] &&
-//       carbonEmissionMapping[mappingKey][logValue]
-//     ) {
-//       totalCarbon += carbonEmissionMapping[mappingKey][logValue];
-//     }
-//   }
+  // 🍽️ Diet
+  if (profileData.diet.dietType === "non_veg_with_beef") {
+    recs.push("Reducing beef intake can lower your diet emissions by up to 30%.");
+  } else if (profileData.diet.dietType === "non_veg_no_beef") {
+    recs.push("Try plant-based meals twice a week to reduce food-related emissions.");
+  } else if (profileData.diet.dietType === "vegetarian") {
+    recs.push("Great job! You can still focus on minimizing food waste to go greener.");
+  }
 
-//   return parseFloat(totalCarbon.toFixed(2));
-// }
+  // ⚡ Electricity
+  if ((profileData.electricity.monthlyKwh || 0) > 600) {
+    recs.push("Switch off unused appliances and switch to energy-efficient lighting.");
+  }
+  if (profileData.electricity.householdSize < 2) {
+    recs.push("Share accommodation or use shared resources to improve energy efficiency.");
+  }
 
-// Comprehensive Carbon Footprint Calculation System
-// Based on Transport, Diet, Electricity, and Lifestyle profiles
+  // 🌱 Lifestyle (if data present)
+  if (profileData.lifestyle?.wasteManagement === "throw_everything") {
+    recs.push("Start recycling and composting to reduce landfill impact.");
+  }
+  if (profileData.lifestyle?.nonEssentialShopping === "weekly") {
+    recs.push("Reduce shopping frequency — buy quality, long-lasting products instead.");
+  }
 
-// Transport emission factors
+  // ❤️ Generic fallback
+  if (recs.length === 0) {
+    recs.push("You're already doing great! Keep tracking your footprint to stay aware.");
+  }
+
+  return recs.slice(0, 5); // limit to 5 recommendations
+};
+
+
 const transportEmissions = {
   primaryMode: {
     personal_car: { base: 4.5, fuelMultiplier: true },
