@@ -2,7 +2,7 @@ import { admin } from "../config/firebase.js";
 import {
   calculateCarbonFootprint,
   calculateCarbonCategory,
-  generateRecommendations
+  generateRecommendations,
 } from "../utils/carbonLogic.js";
 
 const FieldValue = admin.firestore.FieldValue;
@@ -46,7 +46,6 @@ export const getOnboardingQuestions = async (req, res) => {
             { value: "cng", label: "CNG", icon: "🔥" },
             { value: "electric", label: "Electric (EV)", icon: "⚡" },
             { value: "hybrid", label: "Hybrid", icon: "🔋" },
-            { value: "not_sure", label: "Not sure", icon: "❓" },
           ],
         },
         {
@@ -71,7 +70,6 @@ export const getOnboardingQuestions = async (req, res) => {
               label: "Mostly with solar/renewable source",
               icon: "☀️",
             },
-            { value: "not_sure", label: "Not sure", icon: "❓" },
           ],
         },
         {
@@ -101,7 +99,6 @@ export const getOnboardingQuestions = async (req, res) => {
             { value: "average", label: "10–15 km/l (average)", icon: "📊" },
             { value: "good", label: "16–25 km/l (good)", icon: "📈" },
             { value: "excellent", label: "25+ km/l or EV", icon: "⚡" },
-            { value: "not_sure", label: "Not sure", icon: "❓" },
           ],
         },
         {
@@ -212,7 +209,6 @@ export const getOnboardingQuestions = async (req, res) => {
               value: "throw_everything",
               label: "Throw everything together 🗑️",
             },
-            { value: "not_sure", label: "Not sure ❓" },
           ],
         },
       ],
@@ -230,7 +226,6 @@ export const getOnboardingQuestions = async (req, res) => {
       .json({ error: "Failed to fetch onboarding questions." });
   }
 };
-
 
 // Validate onboarding responses for new structure
 const validateOnboardingData = (onboardingData) => {
@@ -441,7 +436,6 @@ export const submitOnboarding = async (req, res) => {
     const people = profileData.electricity.householdSize || 3;
     const dailyElectricity = kwh / people / 30;
     breakdown.electricity = dailyElectricity * electricityFactor;
-
 
     // 🧭 No lifestyle emissions yet
     breakdown.lifestyle = 0; // placeholder for future integration
