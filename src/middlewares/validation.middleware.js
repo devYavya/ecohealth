@@ -41,13 +41,7 @@ export const signupSchema = Joi.object({
         "Gender must be one of: Male, Female, Prefer not to say, Other",
     }),
 
-  bloodGroup: Joi.string()
-    .valid("A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-")
-    .optional()
-    .messages({
-      "any.only":
-        "Blood group must be one of: A+, A-, B+, B-, AB+, AB-, O+, O-",
-    }),
+
 
   country: Joi.string().min(2).max(50).default("India").optional().messages({
     "string.min": "Country must be at least 2 characters",
@@ -113,14 +107,6 @@ export const profileSchema = Joi.object({
       "any.required": "Gender is required",
     }),
 
-  bloodGroup: Joi.string()
-    .valid("A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-")
-    .required()
-    .messages({
-      "any.only":
-        "Blood group must be one of: A+, A-, B+, B-, AB+, AB-, O+, O-",
-      "any.required": "Blood group is required",
-    }),
 
   country: Joi.string()
     .min(2)

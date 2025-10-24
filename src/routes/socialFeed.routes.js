@@ -18,19 +18,22 @@ const router = express.Router();
 
 // Multer config for image and video upload
 const storage = multer.memoryStorage();
-const upload = multer({ 
+const upload = multer({
   storage,
   limits: {
     fileSize: 50 * 1024 * 1024, // 50MB limit
   },
   fileFilter: (req, file, cb) => {
     // Allow images and videos
-    if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
+    if (
+      file.mimetype.startsWith("image/") ||
+      file.mimetype.startsWith("video/")
+    ) {
       cb(null, true);
     } else {
-      cb(new Error('Only image and video files are allowed'), false);
+      cb(new Error("Only image and video files are allowed"), false);
     }
-  }
+  },
 });
 
 // POST /api/social-feed/post (text + optional image)
@@ -366,7 +369,7 @@ const upload = multer({
  * /api/feed/allcomments:
  *   get:
  *     summary: Get all community post comments
- *     description: Fetch all environment-related community comments with their keys (c1, c2, ...). 
+ *     description: Fetch all environment-related community comments with their keys (c1, c2, ...).
  *     tags:
  *       - Comments
  *     security:
@@ -395,7 +398,6 @@ const upload = multer({
  *       500:
  *         description: Internal server error
  */
-
 
 /**
  * @swagger

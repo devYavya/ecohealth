@@ -68,7 +68,6 @@ export const signup = async (req, res, next) => {
       name,
       age,
       gender,
-      bloodGroup,
       role,
       country,
       referredBy,
@@ -120,7 +119,6 @@ export const signup = async (req, res, next) => {
       name,
       age,
       gender,
-      bloodGroup,
       userRole,
       country || "India",
       timezone,
@@ -192,7 +190,7 @@ export const signup = async (req, res, next) => {
         country: country || "India",
         timezone,
         referralCode,
-        profileComplete: !!(age && gender && bloodGroup),
+        profileComplete: !!(age && gender),
       }
     );
   } catch (error) {
@@ -239,8 +237,7 @@ export const login = async (req, res, next) => {
     const profileComplete = !!(
       user.name &&
       user.age &&
-      user.gender &&
-      user.bloodGroup
+      user.gender
     );
 
     return sendSuccessResponse(res, 200, "Login successful!", {
@@ -252,7 +249,6 @@ export const login = async (req, res, next) => {
         name: user.name,
         age: user.age,
         gender: user.gender,
-        bloodGroup: user.bloodGroup,
         role: user.role || "user", // Include role in response
         profilePictureUrl: user.profilePictureUrl || null,
         profileComplete,
@@ -295,6 +291,7 @@ export const extractEmailFromIdToken = (idToken) => {
   try {
     const decoded = jwt.decode(idToken); // bina verify kiye decode karta hai
     if (decoded && decoded.email) {
+      console.log("Decoded email from ID token:", decoded.email);
       return decoded.email;
     } else {
       return null; // email nahi mila token me
@@ -315,7 +312,6 @@ export const socialLogin = async (req, res, next) => {
         .json({ success: false, message: "Firebase ID token is required." });
     }
 
-   
     const email = extractEmailFromIdToken(idToken);
     if (!email) {
       return res
@@ -323,23 +319,20 @@ export const socialLogin = async (req, res, next) => {
         .json({ success: false, message: "Email not found in token." });
     }
 
-
-
-    
     const usersRef = admin.firestore().collection("users");
     const userQuery = await usersRef.where("email", "==", email).limit(1).get();
 
+    console.log("Is userQuery empty?", userQuery.empty); // Debugging log
+
     let userDoc;
     if (userQuery.empty) {
+      const uid = admin.firestore().collection("users").doc().id;
 
-      const uid = admin.firestore().collection("users").doc().id; 
-
-  
+      console.log("Creating new user with UID:", email); // Debugging log
       const firebaseUser = await admin.auth().createUser({
         email,
         emailVerified: true,
-        displayName: email.split("@")[0], 
-        // photoURL: null
+        displayName: email.split("@")[0],
       });
 
       const newUser = {
@@ -352,16 +345,14 @@ export const socialLogin = async (req, res, next) => {
         lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
       };
 
+      console.log("Creating new user in Firestore:", newUser); // Debugging log
       await usersRef.doc(firebaseUser.uid).set(newUser);
       userDoc = newUser;
     } else {
- 
       userDoc = userQuery.docs[0].data();
     }
 
-
     const customToken = await admin.auth().createCustomToken(userDoc.uid);
-
 
     const apiKey = process.env.FIREBASE_API_KEY;
     const response = await axios.post(

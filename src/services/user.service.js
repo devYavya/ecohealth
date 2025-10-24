@@ -28,7 +28,6 @@ export const createUser = async (
   name,
   age,
   gender,
-  bloodGroup,
   role = "user",
   country = "India",
   timezone = "Asia/Kolkata",
@@ -65,7 +64,7 @@ export const createUser = async (
   // Only add optional fields if they exist
   if (age) userData.age = Number(age);
   if (gender) userData.gender = gender;
-  if (bloodGroup) userData.bloodGroup = bloodGroup;
+
 
   // Clean undefined/null fields
   Object.keys(userData).forEach((key) => {

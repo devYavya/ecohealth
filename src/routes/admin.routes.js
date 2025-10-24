@@ -45,9 +45,7 @@ const router = express.Router();
  *         gender:
  *           type: string
  *           example: "male"
- *         bloodGroup:
- *           type: string
- *           example: "O+"
+
  *         createdAt:
  *           type: string
  *           format: date-time

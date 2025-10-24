@@ -56,8 +56,6 @@ import { generalLimiter } from "../middlewares/rateLimiter.middleware.js";
  *                   type: integer
  *                 gender:
  *                   type: string
- *                 bloodGroup:
- *                   type: string
  *                 profilePictureUrl:
  *                   type: string
  *       401:
@@ -88,9 +86,6 @@ import { generalLimiter } from "../middlewares/rateLimiter.middleware.js";
  *               gender:
  *                 type: string
  *                 example: Male
- *               bloodGroup:
- *                 type: string
- *                 example: B+
  *     responses:
  *       200:
  *         description: Profile updated successfully
@@ -118,7 +113,6 @@ import { generalLimiter } from "../middlewares/rateLimiter.middleware.js";
  *               - name
  *               - age
  *               - gender
- *               - bloodGroup
  *             properties:
  *               name:
  *                 type: string
@@ -129,9 +123,6 @@ import { generalLimiter } from "../middlewares/rateLimiter.middleware.js";
  *               gender:
  *                 type: string
  *                 example: Male
- *               bloodGroup:
- *                 type: string
- *                 example: O+
  *               country:
  *                 type: string
  *                 default: India
@@ -164,8 +155,6 @@ import { generalLimiter } from "../middlewares/rateLimiter.middleware.js";
  *                     age:
  *                       type: integer
  *                     gender:
- *                       type: string
- *                     bloodGroup:
  *                       type: string
  *                     country:
  *                       type: string

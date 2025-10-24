@@ -83,8 +83,7 @@ export const getUserProfile = async (req, res) => {
     const profileComplete = !!(
       userData.name &&
       userData.age &&
-      userData.gender &&
-      userData.bloodGroup
+      userData.gender
     );
 
     // Get referral statistics
@@ -124,8 +123,7 @@ export const updateUserProfile = async (req, res, next) => {
     const profileComplete = !!(
       data.name &&
       data.age &&
-      data.gender &&
-      data.bloodGroup
+      data.gender
     );
 
     return sendSuccessResponse(res, 200, "Profile updated successfully", {
@@ -141,7 +139,7 @@ export const updateUserProfile = async (req, res, next) => {
 export const upsertUserProfile = async (req, res) => {
   const uid = req.user.uid;
   const email = req.user.email;
-  const { name, age, gender, bloodGroup, country, referredBy } = req.body;
+  const { name, age, gender, country, referredBy } = req.body;
 
   try {
     const userRef = db.collection("users").doc(uid);
@@ -156,7 +154,6 @@ export const upsertUserProfile = async (req, res) => {
       name,
       age: parseInt(age),
       gender,
-      bloodGroup,
       email,
       country: country || "India",
       timezone: getTimezoneByCountry(country || "India"),
@@ -278,12 +275,12 @@ export const checkProfileCompletion = async (req, res) => {
     if (!userDoc.exists) {
       return sendSuccessResponse(res, 200, "Profile completion status", {
         profileComplete: false,
-        missingFields: ["name", "age", "gender", "bloodGroup"],
+        missingFields: ["name", "age", "gender"],
       });
     }
 
     const userData = userDoc.data();
-    const requiredFields = ["name", "age", "gender", "bloodGroup"];
+    const requiredFields = ["name", "age", "gender"];
     const missingFields = requiredFields.filter((field) => !userData[field]);
     const profileComplete = missingFields.length === 0;
 
@@ -467,7 +464,6 @@ export const resetProgress = async (req, res) => {
         name: userData.name,
         age: userData.age,
         gender: userData.gender,
-        bloodGroup: userData.bloodGroup,
         role: userData.role,
         country: userData.country,
         timezone: userData.timezone,

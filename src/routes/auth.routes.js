@@ -52,7 +52,7 @@ export default router;
  *         application/json:
  *           schema:
  *             type: object
- *             required: [email, password, name, age, gender, bloodGroup]
+ *             required: [email, password, name, age, gender]
  *             properties:
  *               email:
  *                 type: string
@@ -70,9 +70,6 @@ export default router;
  *                 type: string
  *                 enum: [Male, Female, Other]
  *                 example: Male
- *               bloodGroup:
- *                 type: string
- *                 example: B+
  *               country:
  *                 type: string
  *                 default: India
