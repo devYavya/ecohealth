@@ -65,7 +65,6 @@ export const createUser = async (
   if (age) userData.age = Number(age);
   if (gender) userData.gender = gender;
 
-
   // Clean undefined/null fields
   Object.keys(userData).forEach((key) => {
     if (userData[key] === undefined || userData[key] === null) {
@@ -137,11 +136,9 @@ export const generateToken = async (email, password) => {
 
 export const generateTokenFromUID = async (uid) => {
   try {
-  
     await admin.auth().updateUser(uid, { photoURL: null });
     const customToken = await admin.auth().createCustomToken(uid);
 
-   
     const apiKey = process.env.FIREBASE_API_KEY;
     const response = await axios.post(
       `https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${apiKey}`,

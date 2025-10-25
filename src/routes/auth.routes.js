@@ -40,7 +40,6 @@ export default router;
  */
 
 /**
-/**
  * @swagger
  * /api/auth/signup:
  *   post:
@@ -77,7 +76,7 @@ export default router;
  *                 description: User's country (determines timezone automatically)
  *               referredBy:
  *                 type: string
- *                 example: JOHNDOE1234
+ *                 example: JOHUSE6633
  *                 description: Referral code of the person who referred this user (optional)
  *               role:
  *                 type: string
@@ -111,6 +110,12 @@ export default router;
  *                     name:
  *                       type: string
  *                       example: John Doe
+ *                     age:
+ *                       type: integer
+ *                       example: 30
+ *                     gender:
+ *                       type: string
+ *                       example: Male
  *                     role:
  *                       type: string
  *                       example: user
@@ -122,12 +127,16 @@ export default router;
  *                       example: Asia/Kolkata
  *                     referralCode:
  *                       type: string
- *                       example: JOHNDOE1234
+ *                       example: JOHUSE6633
+ *                     referredBy:
+ *                       type: string
+ *                       example: JOHUSE6633
+ *                       description: Only included if referral code was provided
  *                     profileComplete:
  *                       type: boolean
  *                       example: true
  *       400:
- *         description: Invalid input, invalid referral code, or email already exists
+ *         description: Invalid input, invalid referral code
  *       409:
  *         description: Email already exists
  */

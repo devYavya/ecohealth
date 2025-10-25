@@ -94,7 +94,8 @@ export const requireCompleteProfile = async (req, res, next) => {
     const profileComplete = !!(
       userData.name &&
       userData.age &&
-      userData.gender
+      userData.gender &&
+      userData.profilePictureUrl
     );
 
     if (!profileComplete) {
@@ -104,7 +105,7 @@ export const requireCompleteProfile = async (req, res, next) => {
         "Profile incomplete. Please complete your profile before accessing this feature.",
         {
           profileComplete: false,
-          requiredFields: ["name", "age", "gender"],
+          requiredFields: ["name", "age", "gender", "profilePictureUrl"],
         }
       );
     }

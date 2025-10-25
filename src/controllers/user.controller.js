@@ -93,10 +93,9 @@ export const getUserProfile = async (req, res) => {
       referredBy: userData.referredBy || null,
     };
 
-   
     const countryInfo = {
-      country: userData.country || "India", 
-      timezone: userData.timezone || "Asia/Kolkata", 
+      country: userData.country || "India",
+      timezone: userData.timezone || "Asia/Kolkata",
     };
 
     return sendSuccessResponse(res, 200, "Profile retrieved successfully", {
@@ -120,11 +119,7 @@ export const updateUserProfile = async (req, res, next) => {
     const data = await updateUserData(req.user.uid, req.body);
 
     // Check if profile is now complete
-    const profileComplete = !!(
-      data.name &&
-      data.age &&
-      data.gender
-    );
+    const profileComplete = !!(data.name && data.age && data.gender);
 
     return sendSuccessResponse(res, 200, "Profile updated successfully", {
       ...data,
@@ -166,6 +161,8 @@ export const upsertUserProfile = async (req, res) => {
 
     // Handle referral logic - only if user doesn't already have a referredBy value
     let referrerData = null;
+    let isNewReferral = false;
+
     if (referredBy && !existingData.referredBy) {
       // Validate referral code
       const referrerQuery = await admin
@@ -180,25 +177,30 @@ export const upsertUserProfile = async (req, res) => {
       }
 
       referrerData = referrerQuery.docs[0].data();
-      
+
       // Prevent self-referral
       if (referrerData.uid === uid) {
         return sendErrorResponse(res, 400, "You cannot refer yourself.");
       }
 
       data.referredBy = referredBy;
-      console.log(`👤 User ${email} is being referred by ${referrerData.email}`);
-    } else if (referredBy && existingData.referredBy) {
-      // User already has a referral, don't allow changing it
-      console.log(`⚠️ User ${email} already has referral code: ${existingData.referredBy}. Ignoring new referral code: ${referredBy}`);
-      data.referredBy = existingData.referredBy; // Keep existing referral
+      isNewReferral = true;
+      console.log(
+        `👤 User ${email} is being referred by ${referrerData.email}`
+      );
+    } else if (existingData.referredBy) {
+      // User already has a referral, keep the existing one
+      data.referredBy = existingData.referredBy;
+      console.log(
+        `⚠️ User ${email} already has referral code: ${existingData.referredBy}`
+      );
     }
 
     // Save user profile
     await userRef.set(data, { merge: true });
 
     // Process referral bonuses only if this is a new referral
-    if (referrerData && !existingData.referredBy) {
+    if (referrerData && isNewReferral) {
       const referrerRef = admin
         .firestore()
         .collection("users")
@@ -250,12 +252,39 @@ export const upsertUserProfile = async (req, res) => {
     }
 
     // Profile is complete after upsert
-    const profileComplete = true;
+    const profileComplete = !!(
+      name &&
+      age &&
+      gender &&
+      existingData?.profilePictureUrl
+    );
 
-    return sendSuccessResponse(res, 200, "Profile saved successfully", {
-      ...data,
+    // Prepare response data without duplicates
+    const responseData = {
+      uid: data.uid,
+      name: data.name,
+      age: data.age,
+      gender: data.gender,
+      email: data.email,
+      country: data.country,
+      timezone: data.timezone,
       profileComplete,
-    });
+    };
+
+    // Add optional fields only if they exist
+    if (data.referredBy) {
+      responseData.referredBy = data.referredBy;
+    }
+    if (existingData.referralCode) {
+      responseData.referralCode = existingData.referralCode;
+    }
+
+    return sendSuccessResponse(
+      res,
+      200,
+      "Profile saved successfully",
+      responseData
+    );
   } catch (err) {
     console.error("Error saving profile:", err.message);
     return sendErrorResponse(
@@ -280,7 +309,7 @@ export const checkProfileCompletion = async (req, res) => {
     }
 
     const userData = userDoc.data();
-    const requiredFields = ["name", "age", "gender"];
+    const requiredFields = ["name", "age", "gender", "profilePictureUrl"];
     const missingFields = requiredFields.filter((field) => !userData[field]);
     const profileComplete = missingFields.length === 0;
 

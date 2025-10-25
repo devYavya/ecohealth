@@ -61,17 +61,8 @@ const getTimezoneByCountry = (country) => {
 
 export const signup = async (req, res, next) => {
   try {
-    const {
-      email,
-      password,
-      name,
-      age,
-      gender,
-      bloodGroup,
-      role,
-      country,
-      referredBy,
-    } = req.body;
+    const { email, password, name, age, gender, role, country, referredBy } =
+      req.body;
 
     const existingUser = await checkUserExists(email);
     if (existingUser) {
@@ -84,6 +75,8 @@ export const signup = async (req, res, next) => {
 
     // Validate referral code if provided
     let referrerData = null;
+    let isNewReferral = false;
+
     if (referredBy) {
       const referrerQuery = await admin
         .firestore()
@@ -97,6 +90,13 @@ export const signup = async (req, res, next) => {
       }
 
       referrerData = referrerQuery.docs[0].data();
+
+      // Prevent self-referral
+      if (referrerData.uid === email) {
+        return sendErrorResponse(res, 400, "You cannot refer yourself.");
+      }
+
+      isNewReferral = true;
     }
 
     // Default role to "user" if not provided, only allow "admin" for specific emails
@@ -119,7 +119,6 @@ export const signup = async (req, res, next) => {
       name,
       age,
       gender,
-      bloodGroup,
       userRole,
       country || "India",
       timezone,
@@ -128,7 +127,7 @@ export const signup = async (req, res, next) => {
     );
 
     // If user was referred, update referrer's referral count and give bonus points to both users
-    if (referrerData) {
+    if (referrerData && isNewReferral) {
       const referrerRef = admin
         .firestore()
         .collection("users")
@@ -179,20 +178,28 @@ export const signup = async (req, res, next) => {
       );
     }
 
+    // Prepare response data without duplicates
+    const responseData = {
+      uid: user.uid,
+      email: user.email,
+      name: user.displayName,
+      role: userRole,
+      country: country || "India",
+      timezone,
+      referralCode,
+      profileComplete: false,
+    };
+
+    // Add referredBy only if it was provided
+    if (referredBy) {
+      responseData.referredBy = referredBy;
+    }
+
     return sendSuccessResponse(
       res,
       201,
       "Account created successfully! Please complete your profile.",
-      {
-        uid: user.uid,
-        email: user.email,
-        name: user.displayName,
-        role: userRole,
-        country: country || "India",
-        timezone,
-        referralCode,
-        profileComplete: !!(age && gender && bloodGroup),
-      }
+      responseData
     );
   } catch (error) {
     console.error("Signup failed:", error);
@@ -239,7 +246,7 @@ export const login = async (req, res, next) => {
       user.name &&
       user.age &&
       user.gender &&
-      user.bloodGroup
+      user.profilePictureUrl
     );
 
     return sendSuccessResponse(res, 200, "Login successful!", {
@@ -251,7 +258,6 @@ export const login = async (req, res, next) => {
         name: user.name,
         age: user.age,
         gender: user.gender,
-        bloodGroup: user.bloodGroup,
         role: user.role || "user", // Include role in response
         profilePictureUrl: user.profilePictureUrl || null,
         profileComplete,
