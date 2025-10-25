@@ -298,11 +298,9 @@ export const getMyChallenges = async (req, res) => {
 
     const challenges = [];
 
-
     for (const doc of snapshot.docs) {
       const userChallengeData = doc.data();
 
-  
       const mainChallengeDoc = await db
         .collection("challenges")
         .doc(userChallengeData.challengeId)
@@ -527,16 +525,6 @@ export const updateChallengeProgress = async (uid, dailyLogData) => {
         if (criteria.digitalUsage && dailyLogData.carbonBreakdown) {
           const digitalCarbon = dailyLogData.carbonBreakdown.digital || 0;
           if (digitalCarbon <= criteria.digitalUsage) {
-            criteriaMetToday = true;
-            progressIncrement = 1;
-          }
-        }
-
-        // Check screen time reduction
-        if (criteria.screenTime && dailyLogData.overrides?.digital) {
-          const screenHours =
-            dailyLogData.overrides.digital.screenTimeHours || 0;
-          if (screenHours <= criteria.screenTime) {
             criteriaMetToday = true;
             progressIncrement = 1;
           }

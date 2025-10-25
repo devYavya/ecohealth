@@ -1,5 +1,3 @@
-
-
 // src/utils/carbonUtils.js
 
 /**
@@ -8,10 +6,10 @@
  * @returns {string} category
  */
 export const calculateCarbonCategory = (total) => {
-  if (total < 5) return "Low";              // Minimal footprint
+  if (total < 5) return "Low"; // Minimal footprint
   if (total >= 5 && total < 15) return "Moderate"; // Typical average user
-  if (total >= 15 && total < 25) return "High";     // Heavy lifestyle
-  return "Very High";                       // Frequent flights, non-veg, AC, etc.
+  if (total >= 15 && total < 25) return "High"; // Heavy lifestyle
+  return "Very High"; // Frequent flights, non-veg, AC, etc.
 };
 
 /**
@@ -29,36 +27,56 @@ export const generateRecommendations = (profileData, totalCarbon) => {
     profileData.transport.primaryMode === "personal_car" ||
     profileData.transport.fuelType === "diesel"
   ) {
-    recs.push("Try using public transport or carpool 2–3 times a week to cut fuel emissions.");
+    recs.push(
+      "Try using public transport or carpool 2–3 times a week to cut fuel emissions."
+    );
   }
-  if (profileData.transport.fuelType === "electric" &&
-      profileData.transport.evChargingSource === "home_grid") {
-    recs.push("Consider switching to renewable electricity for charging your EV.");
+  if (
+    profileData.transport.fuelType === "electric" &&
+    profileData.transport.evChargingSource === "home_grid"
+  ) {
+    recs.push(
+      "Consider switching to renewable electricity for charging your EV."
+    );
   }
   if (profileData.transport.dailyDistance === "51plus_km") {
-    recs.push("Work remotely or cluster errands to reduce long daily commutes.");
+    recs.push(
+      "Work remotely or cluster errands to reduce long daily commutes."
+    );
   }
 
   // ✈️ Flights
   if (profileData.transport.flightsPerYear?.["Long-range"]?.count > 2) {
-    recs.push("Limit long-distance flights or offset emissions with verified carbon projects.");
+    recs.push(
+      "Limit long-distance flights or offset emissions with verified carbon projects."
+    );
   }
 
   // 🍽️ Diet
   if (profileData.diet.dietType === "non_veg_with_beef") {
-    recs.push("Reducing beef intake can lower your diet emissions by up to 30%.");
+    recs.push(
+      "Reducing beef intake can lower your diet emissions by up to 30%."
+    );
   } else if (profileData.diet.dietType === "non_veg_no_beef") {
-    recs.push("Try plant-based meals twice a week to reduce food-related emissions.");
+    recs.push(
+      "Try plant-based meals twice a week to reduce food-related emissions."
+    );
   } else if (profileData.diet.dietType === "vegetarian") {
-    recs.push("Great job! You can still focus on minimizing food waste to go greener.");
+    recs.push(
+      "Great job! You can still focus on minimizing food waste to go greener."
+    );
   }
 
   // ⚡ Electricity
   if ((profileData.electricity.monthlyKwh || 0) > 600) {
-    recs.push("Switch off unused appliances and switch to energy-efficient lighting.");
+    recs.push(
+      "Switch off unused appliances and switch to energy-efficient lighting."
+    );
   }
   if (profileData.electricity.householdSize < 2) {
-    recs.push("Share accommodation or use shared resources to improve energy efficiency.");
+    recs.push(
+      "Share accommodation or use shared resources to improve energy efficiency."
+    );
   }
 
   // 🌱 Lifestyle (if data present)
@@ -66,17 +84,20 @@ export const generateRecommendations = (profileData, totalCarbon) => {
     recs.push("Start recycling and composting to reduce landfill impact.");
   }
   if (profileData.lifestyle?.nonEssentialShopping === "weekly") {
-    recs.push("Reduce shopping frequency — buy quality, long-lasting products instead.");
+    recs.push(
+      "Reduce shopping frequency — buy quality, long-lasting products instead."
+    );
   }
 
   // ❤️ Generic fallback
   if (recs.length === 0) {
-    recs.push("You're already doing great! Keep tracking your footprint to stay aware.");
+    recs.push(
+      "You're already doing great! Keep tracking your footprint to stay aware."
+    );
   }
 
   return recs.slice(0, 5); // limit to 5 recommendations
 };
-
 
 const transportEmissions = {
   primaryMode: {
@@ -133,14 +154,14 @@ const transportEmissions = {
 // Diet emission factors
 const dietEmissions = {
   mealTypes: {
-    meat_based: 4.5, 
+    meat_based: 4.5,
     dairy_egg_based: 1.2,
     plant_based: 0.5,
   },
-  orderedMealsMultiplier: 2.0, 
+  orderedMealsMultiplier: 2.0,
   orderedMealsPerWeek: {
     never: 0.0,
-    "1_2_week": 0.3, 
+    "1_2_week": 0.3,
     "3_5_week": 0.6,
     "6_9_week": 1.0,
     "10_15_week": 1.8,
@@ -164,13 +185,13 @@ const dietEmissions = {
 // Electricity emission factors
 const electricityEmissions = {
   emissionFactors: {
-    mostly_renewable: 0.1, 
+    mostly_renewable: 0.1,
     partially_renewable: 0.5,
     no_renewable: 0.9,
     not_sure: 0.9,
   },
   usageEstimates: {
-    less_100: 75, 
+    less_100: 75,
     "100_200": 150,
     "200_400": 300,
     "400_600": 500,
@@ -183,7 +204,7 @@ const electricityEmissions = {
     "12plus_hours": 1.0,
   },
   appliances: {
-    air_conditioner: 60, 
+    air_conditioner: 60,
     geyser: 30,
     refrigerator: 40,
     washing_machine: 15,
@@ -196,13 +217,13 @@ const electricityEmissions = {
 // Lifestyle emission factors
 const lifestyleEmissions = {
   screenTime: {
-    less_2hrs: 1, 
+    less_2hrs: 1,
     "2_4hrs": 2,
     "4_6hrs": 3,
     "6plus_hrs": 4,
   },
   nonEssentialShopping: {
-    weekly: 10, 
+    weekly: 10,
     few_times_month: 6,
     monthly: 3,
     rarely_never: 0,
@@ -214,20 +235,19 @@ const lifestyleEmissions = {
     rarely_never: 0,
   },
   onlineOrders: {
-    0: 0, 
+    0: 0,
     "1_5": 2,
     "6_10": 4,
     "11_15": 6,
     "15plus": 8,
   },
   wasteManagement: {
-    recycle_compost: 0.8, 
+    recycle_compost: 0.8,
     recycle_some: 0.9,
     throw_everything: 1.1,
     not_sure: 1.0,
   },
 };
-
 
 function calculateTransportCF(transportData) {
   const {
@@ -495,7 +515,7 @@ export function calculateCarbonFootprintFromDailyLog(dailyLogData) {
 
   // Electricity daily override
   if (dailyLogData.electricity) {
-    const { acHours, appliances, workedFromHome } = dailyLogData.electricity;
+    const { acHours, appliances } = dailyLogData.electricity;
 
     // AC usage
     if (acHours && acHours !== "0") {
@@ -510,11 +530,6 @@ export function calculateCarbonFootprintFromDailyLog(dailyLogData) {
         const dailyKwh = (electricityEmissions.appliances[appliance] || 0) / 30;
         electricityCF += dailyKwh * 0.9;
       });
-    }
-
-    // Work from home extra usage
-    if (workedFromHome) {
-      electricityCF += 2.0; // Extra 2kg CO2 for WFH
     }
   }
 

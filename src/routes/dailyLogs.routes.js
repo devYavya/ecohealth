@@ -79,35 +79,6 @@ const router = express.Router();
  *                   enum: ["geyser", "microwave", "washing_machine"]
  *                 description: "Q2: Did you use high-power appliances today? (Multi-select)"
  *                 example: ["geyser", "microwave"]
- *               workedFromHome:
- *                 type: boolean
- *                 description: "Q3: Did you work/study from home today?"
- *                 example: true
- *               placedOnlineOrders:
- *                 type: boolean
- *                 description: "Q1: Did you place any online orders today?"
- *                 example: false
- *               screenTimeHours:
- *                 type: string
- *                 enum: ["less_than_2", "2_to_4", "4_to_6", "6_plus"]
- *                 description: "Q2: Roughly how many hours did you spend on screens today?"
- *                 example: "4_to_6"
- *               segregatedWaste:
- *                 type: boolean
- *                 description: "Q3: Did you segregate or recycle waste today?"
- *                 example: true
- *               steps:
- *                 type: integer
- *                 description: Daily step count
- *                 example: 8500
- *               distance:
- *                 type: number
- *                 description: Distance traveled in km (auto-calculated if not provided)
- *                 example: 6.8
- *               caloriesBurned:
- *                 type: integer
- *                 description: Calories burned during activities
- *                 example: 320
  *               aiTipId:
  *                 type: string
  *                 description: Reference to AI-generated tip
@@ -230,7 +201,6 @@ const router = express.Router();
  *                   electricity:
  *                     acHours: "2_4"
  *                     appliances: ["geyser", "microwave"]
- *                     workedFromHome: true
  *                   lifestyle:
  *                     screenTime: "4_to_6"
  *                     onlineOrders: false

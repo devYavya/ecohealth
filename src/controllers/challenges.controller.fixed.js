@@ -55,15 +55,6 @@ export const updateChallengeProgressFixed = async (uid, dailyLogData) => {
       ) {
         console.log("🌍 Processing LIFESTYLE challenge...");
 
-        // For Zero Waste Challenge - just check if waste is segregated
-        if (
-          criteria.wasteReduction &&
-          dailyLogData.dailyLogAnswers?.lifestyle?.segregatedWaste === true
-        ) {
-          console.log("✅ WASTE CRITERIA MET: segregatedWaste = true");
-          criteriaMetToday = true;
-        }
-
         // For Daily Logging challenges
         if (criteria.dailyLogging && dailyLogData.date) {
           console.log("✅ DAILY LOGGING CRITERIA MET");

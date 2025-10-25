@@ -14,7 +14,6 @@ import { sendSuccessResponse, sendErrorResponse } from "../utils/response.js";
 import dotenv from "dotenv";
 import nodemailer from "nodemailer";
 
-
 dotenv.config();
 
 // Helper function to generate referral code
@@ -68,6 +67,7 @@ export const signup = async (req, res, next) => {
       name,
       age,
       gender,
+      bloodGroup,
       role,
       country,
       referredBy,
@@ -119,6 +119,7 @@ export const signup = async (req, res, next) => {
       name,
       age,
       gender,
+      bloodGroup,
       userRole,
       country || "India",
       timezone,
@@ -190,7 +191,7 @@ export const signup = async (req, res, next) => {
         country: country || "India",
         timezone,
         referralCode,
-        profileComplete: !!(age && gender),
+        profileComplete: !!(age && gender && bloodGroup),
       }
     );
   } catch (error) {
@@ -237,7 +238,8 @@ export const login = async (req, res, next) => {
     const profileComplete = !!(
       user.name &&
       user.age &&
-      user.gender
+      user.gender &&
+      user.bloodGroup
     );
 
     return sendSuccessResponse(res, 200, "Login successful!", {
@@ -249,6 +251,7 @@ export const login = async (req, res, next) => {
         name: user.name,
         age: user.age,
         gender: user.gender,
+        bloodGroup: user.bloodGroup,
         role: user.role || "user", // Include role in response
         profilePictureUrl: user.profilePictureUrl || null,
         profileComplete,
@@ -301,7 +304,6 @@ export const extractEmailFromIdToken = (idToken) => {
     return null;
   }
 };
-
 
 export const socialLogin = async (req, res, next) => {
   try {
