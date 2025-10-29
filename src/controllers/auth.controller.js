@@ -9,8 +9,14 @@ import {
   checkUserExists,
   generateTokenFromUID,
   generateTokenFromIdToken,
+  updateEmailVerificationStatus,
 } from "../services/user.service.js";
 import { sendSuccessResponse, sendErrorResponse } from "../utils/response.js";
+import {
+  sendVerificationEmail,
+  sendWelcomeEmail,
+  sendResendVerificationEmail,
+} from "../utils/emailService.js";
 import dotenv from "dotenv";
 import nodemailer from "nodemailer";
 
@@ -188,6 +194,7 @@ export const signup = async (req, res, next) => {
       timezone,
       referralCode,
       profileComplete: false,
+      emailVerified: false,
     };
 
     // Add referredBy only if it was provided
@@ -195,10 +202,33 @@ export const signup = async (req, res, next) => {
       responseData.referredBy = referredBy;
     }
 
+    // 📧 Send verification email
+    try {
+      // Firebase requires a valid continue URL even for mobile-only apps
+      // Using app deep link or fallback to your app's main URL
+      const continueUrl =
+        process.env.FRONTEND_URL ||
+        process.env.APP_DEEP_LINK_URL ||
+        "https://ecohealth.app";
+
+      const verificationLink = await admin
+        .auth()
+        .generateEmailVerificationLink(email, {
+          url: continueUrl,
+          handleCodeInApp: true,
+        });
+
+      await sendVerificationEmail(email, name, verificationLink);
+      console.log(`📧 Verification email sent to ${email}`);
+    } catch (emailError) {
+      console.error("Error sending verification email:", emailError);
+      // Don't fail signup if email fails to send
+    }
+
     return sendSuccessResponse(
       res,
       201,
-      "Account created successfully! Please complete your profile.",
+      "Account created successfully! Please check your email to verify your account.",
       responseData
     );
   } catch (error) {
@@ -236,6 +266,23 @@ export const login = async (req, res, next) => {
       );
     }
 
+    // Check if email is verified
+    const userRecord = await admin.auth().getUser(userExists.uid);
+    if (!userRecord.emailVerified) {
+      return sendErrorResponse(
+        res,
+        403,
+        "Please verify your email before logging in. Check your inbox for the verification link.",
+        {
+          emailVerified: false,
+          uid: userExists.uid,
+          email: userExists.email,
+          message:
+            "Email verification required. Click the link in your verification email.",
+        }
+      );
+    }
+
     const { access_Token, refresh_Token } = await generateToken(
       email,
       password
@@ -261,6 +308,7 @@ export const login = async (req, res, next) => {
         role: user.role || "user", // Include role in response
         profilePictureUrl: user.profilePictureUrl || null,
         profileComplete,
+        emailVerified: true,
       },
     });
   } catch (error) {
@@ -501,6 +549,115 @@ export const refreshToken = async (req, res, next) => {
     }
 
     next(error);
+  }
+};
+
+/**
+ * Resend verification email
+ * @route POST /api/auth/resend-verification-email
+ */
+export const resendVerificationEmail = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return sendErrorResponse(res, 400, "Email is required.");
+    }
+
+    // Check if user exists
+    const userRecord = await admin.auth().getUserByEmail(email);
+
+    if (userRecord.emailVerified) {
+      return sendErrorResponse(res, 400, "Email is already verified.");
+    }
+
+    // Get user data from Firestore to get name
+    const userDoc = await admin
+      .firestore()
+      .collection("users")
+      .doc(userRecord.uid)
+      .get();
+
+    const name = userDoc.exists ? userDoc.data().name : "User";
+
+    // Firebase requires a valid continue URL even for mobile-only apps
+    // Using app deep link or fallback to your app's main URL
+    const continueUrl =
+      process.env.FRONTEND_URL ||
+      process.env.APP_DEEP_LINK_URL ||
+      "https://ecohealth.app";
+
+    // Generate new verification link
+    const verificationLink = await admin
+      .auth()
+      .generateEmailVerificationLink(email, {
+        url: continueUrl,
+        handleCodeInApp: true,
+      });
+
+    // Send email
+    await sendResendVerificationEmail(email, name, verificationLink);
+
+    return sendSuccessResponse(
+      res,
+      200,
+      "Verification email resent successfully! Please check your inbox."
+    );
+  } catch (error) {
+    console.error("Resend verification error:", error);
+
+    if (error.code === "auth/user-not-found") {
+      return sendErrorResponse(res, 404, "User not found.");
+    }
+
+    return sendErrorResponse(res, 500, "Failed to resend verification email.");
+  }
+};
+
+/**
+ * Verify email after user clicks link
+ * @route POST /api/auth/verify-email-complete
+ */
+export const verifyEmailComplete = async (req, res) => {
+  try {
+    const { uid } = req.user;
+
+    // Check if email is verified in Firebase Auth
+    const userRecord = await admin.auth().getUser(uid);
+
+    if (!userRecord.emailVerified) {
+      return sendErrorResponse(
+        res,
+        400,
+        "Email is not verified yet. Please click the verification link in your email."
+      );
+    }
+
+    // Update Firestore
+    await updateEmailVerificationStatus(uid, true);
+
+    // Send welcome email
+    const userDoc = await admin.firestore().collection("users").doc(uid).get();
+    const userData = userDoc.data();
+
+    try {
+      await sendWelcomeEmail(userData.email, userData.name);
+    } catch (welcomeEmailError) {
+      console.error("Error sending welcome email:", welcomeEmailError);
+      // Don't fail verification if welcome email fails
+    }
+
+    return sendSuccessResponse(res, 200, "Email verified successfully! 🎉", {
+      emailVerified: true,
+      message: "Your account is now fully activated.",
+    });
+  } catch (error) {
+    console.error("Email verification complete error:", error);
+    return sendErrorResponse(
+      res,
+      500,
+      "Failed to complete email verification."
+    );
   }
 };
 

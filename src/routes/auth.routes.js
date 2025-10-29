@@ -8,7 +8,10 @@ import {
   sendPasswordResetEmail,
   refreshToken,
   logout,
+  resendVerificationEmail,
+  verifyEmailComplete,
 } from "../controllers/auth.controller.js";
+import { verifyToken } from "../middlewares/auth.middleware.js";
 import {
   validateRequest,
   signupSchema,
@@ -30,6 +33,8 @@ router.post(
 );
 router.post("/refresh-token", refreshToken);
 router.post("/logout", logout);
+router.post("/resend-verification-email", resendVerificationEmail);
+router.post("/verify-email-complete", verifyToken, verifyEmailComplete);
 
 export default router;
 /**
@@ -293,4 +298,152 @@ export default router;
  *     responses:
  *       200:
  *         description: Logged out successfully
+ */
+
+/**
+ * @swagger
+ * /api/auth/resend-verification-email:
+ *   post:
+ *     summary: Resend verification email to user
+ *     description: Sends a new verification email with a fresh verification link. Use this when user hasn't received the initial verification email or the link has expired.
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: user@example.com
+ *                 description: User's email address registered with the system
+ *     responses:
+ *       200:
+ *         description: Verification email resent successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Verification email resent successfully! Please check your inbox."
+ *       400:
+ *         description: Bad request - Email is required or already verified
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Email is already verified."
+ *       404:
+ *         description: User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "User not found."
+ *       500:
+ *         description: Server error - Failed to resend verification email
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to resend verification email."
+ */
+
+/**
+ * @swagger
+ * /api/auth/verify-email-complete:
+ *   post:
+ *     summary: Complete email verification
+ *     description: Called after user clicks the verification link in their email. This endpoint confirms the email verification in Firebase and Firestore, then sends a welcome email.
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Email verified successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Email verified successfully! 🎉"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     emailVerified:
+ *                       type: boolean
+ *                       example: true
+ *                     message:
+ *                       type: string
+ *                       example: "Your account is now fully activated."
+ *       400:
+ *         description: Email not yet verified in Firebase Auth
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Email is not verified yet. Please click the verification link in your email."
+ *       401:
+ *         description: Unauthorized - Invalid or missing token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Authorization header is required."
+ *       500:
+ *         description: Server error - Failed to complete email verification
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to complete email verification."
  */

@@ -52,6 +52,8 @@ export const createUser = async (
     timezone,
     referralCode,
     referralCount: 0,
+    emailVerified: false,
+    emailVerifiedAt: null,
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
     lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
   };
@@ -262,4 +264,46 @@ export const updateUserData = async (uid, updates) => {
   });
   const updated = await docRef.get();
   return updated.data();
+};
+
+/**
+ * Update email verification status in Firestore
+ * @param {string} uid - User ID
+ * @param {boolean} emailVerified - Verification status
+ */
+export const updateEmailVerificationStatus = async (uid, emailVerified) => {
+  try {
+    const firestore = admin.firestore();
+    await firestore
+      .collection("users")
+      .doc(uid)
+      .update({
+        emailVerified,
+        emailVerifiedAt: emailVerified
+          ? admin.firestore.FieldValue.serverTimestamp()
+          : null,
+        lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    console.log(
+      `📧 Email verification status updated for ${uid}: ${emailVerified}`
+    );
+    return true;
+  } catch (error) {
+    console.error("Error updating email verification status:", error);
+    throw error;
+  }
+};
+
+/**
+ * Check if email is verified
+ * @param {string} uid - User ID
+ */
+export const checkEmailVerified = async (uid) => {
+  try {
+    const userRecord = await admin.auth().getUser(uid);
+    return userRecord.emailVerified;
+  } catch (error) {
+    console.error("Error checking email verification:", error);
+    throw error;
+  }
 };

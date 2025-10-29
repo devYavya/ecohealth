@@ -116,3 +116,35 @@ export const requireCompleteProfile = async (req, res, next) => {
     return sendErrorResponse(res, 500, "Unable to verify profile status.");
   }
 };
+
+/**
+ * Middleware to check if user's email is verified
+ * @middleware verifyEmailVerified
+ */
+export const verifyEmailVerified = async (req, res, next) => {
+  try {
+    const uid = req.user.uid;
+
+    // Get user from Firebase Auth
+    const userRecord = await admin.auth().getUser(uid);
+
+    if (!userRecord.emailVerified) {
+      return sendErrorResponse(
+        res,
+        403,
+        "Please verify your email before accessing this feature.",
+        {
+          emailVerified: false,
+          message: "Check your inbox for the verification link.",
+        }
+      );
+    }
+
+    // Update request with verification status
+    req.user.emailVerified = true;
+    next();
+  } catch (error) {
+    console.error("Email verification check error:", error);
+    return sendErrorResponse(res, 500, "Unable to verify email status.");
+  }
+};
