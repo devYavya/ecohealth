@@ -601,6 +601,110 @@ export const getOnboardingProgress = async (req, res) => {
   }
 };
 
+
+export const allCarbonData = async (req, res) => {
+  try {
+    const db = admin.firestore();
+
+ 
+    const { uid } = req.user;
+    const carbonProfiles = [];
+    const pageSize = 1000; 
+    let lastDocSnapshot = null;
+    let hasMore = true;
+    let currentUserCarbonData = null;
+
+    while (hasMore) {
+      let query = db.collectionGroup("carbonProfile").orderBy("__name__"); 
+
+      if (lastDocSnapshot) {
+        query = query.startAfter(lastDocSnapshot);
+      }
+
+      const snapshot = await query.limit(pageSize).get();
+
+      if (snapshot.empty) {
+        hasMore = false;
+        break;
+      }
+
+      // Extract user IDs from the collection path
+      snapshot.docs.forEach((doc) => {
+        const pathSegments = doc.ref.path.split("/");
+        const userId = pathSegments[1]; 
+        const data = doc.data();
+
+        const profileData = {
+          uid: userId,
+          totalCarbonFootprint: data.totalCarbonFootprint,
+        };
+
+        carbonProfiles.push(profileData);
+
+        // Store current user's carbon data
+        if (userId === uid) {
+          currentUserCarbonData = profileData;
+        }
+      });
+
+      lastDocSnapshot = snapshot.docs[snapshot.docs.length - 1];
+    }
+
+    // Calculate average carbon footprint
+    const totalCarbonFootprint = carbonProfiles.reduce(
+      (sum, profile) => sum + profile.totalCarbonFootprint,
+      0
+    );
+    const averageCarbonFootprint =
+      carbonProfiles.length > 0
+        ? totalCarbonFootprint / carbonProfiles.length
+        : 0;
+
+  
+    const highestCarbonUser = carbonProfiles.reduce(
+      (max, profile) =>
+        profile.totalCarbonFootprint > max.totalCarbonFootprint ? profile : max,
+      carbonProfiles[0] || { uid: null, totalCarbonFootprint: 0 }
+    );
+
+ 
+    const lowestCarbonUser = carbonProfiles.reduce(
+      (min, profile) =>
+        profile.totalCarbonFootprint < min.totalCarbonFootprint ? profile : min,
+      carbonProfiles[0] || { uid: null, totalCarbonFootprint: 0 }
+    );
+
+    return res.status(200).json({
+      currentUser: currentUserCarbonData || {
+        uid,
+        totalCarbonFootprint: null,
+        message: "User has not completed onboarding",
+      },
+      // allUsers: carbonProfiles,
+      summary: {
+        totalUsers: carbonProfiles.length,
+        averageCarbonFootprint: parseFloat(averageCarbonFootprint.toFixed(2)),
+        totalCarbonFootprintSum: parseFloat(totalCarbonFootprint.toFixed(2)),
+        highestCarbonUser: {
+          uid: highestCarbonUser.uid,
+          totalCarbonFootprint: parseFloat(
+            highestCarbonUser.totalCarbonFootprint.toFixed(2)
+          ),
+        },
+        lowestCarbonUser: {
+          uid: lowestCarbonUser.uid,
+          totalCarbonFootprint: parseFloat(
+            lowestCarbonUser.totalCarbonFootprint.toFixed(2)
+          ),
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching all carbon data:", error);
+    return res.status(500).json({ error: "Failed to fetch all carbon data." });
+  }
+};
+
 export const getDashboardData = async (req, res) => {
   try {
     const uid = req.user.uid;

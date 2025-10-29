@@ -7,6 +7,7 @@ import {
   getOnboardingProgress,
   submitOnboarding,
   getDashboardData,
+  allCarbonData
 } from "../controllers/onboarding.controller.js";
 
 const router = express.Router();
@@ -813,7 +814,131 @@ router.get("/progress", verifyToken, getOnboardingProgress);
  *                   type: string
  *                   example: "Failed to fetch dashboard data."
  */
+/**
+ * @swagger
+ * /api/onboarding/carbon-data:
+ *   get:
+ *     summary: Get user's baseline carbon footprint data
+ *     description: Retrieves the user's complete carbon profile including baseline carbon footprint and breakdown by category (transport, diet, electricity, lifestyle)
+ *     tags: [Onboarding]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Carbon data retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 totalCarbonFootprint:
+ *                   type: number
+ *                   format: float
+ *                   example: 8.45
+ *                   description: Total daily carbon footprint in kg CO2e
+ *                 unit:
+ *                   type: string
+ *                   example: "kg CO2e per day"
+ *                   description: Unit of measurement for carbon footprint
+ *                 category:
+ *                   type: string
+ *                   enum: [Low Impact, Moderate Impact, High Impact, Very High Impact]
+ *                   example: "Low Impact"
+ *                   description: Carbon footprint impact category based on total emissions
+ *                 breakdown:
+ *                   type: object
+ *                   description: Detailed breakdown of carbon emissions by category
+ *                   properties:
+ *                     transport:
+ *                       type: object
+ *                       properties:
+ *                         value:
+ *                           type: string
+ *                           example: "electric_vehicle"
+ *                           description: Primary transport mode or fuel type
+ *                         emission:
+ *                           type: number
+ *                           format: float
+ *                           example: 2.15
+ *                           description: Carbon emissions for transport in kg CO2e per day
+ *                         percentage:
+ *                           type: string
+ *                           example: "25.4%"
+ *                           description: Percentage contribution to total footprint
+ *                     diet:
+ *                       type: object
+ *                       properties:
+ *                         value:
+ *                           type: string
+ *                           example: "plant_based"
+ *                           description: Diet type (plant-based, vegetarian, mixed, high-meat)
+ *                         emission:
+ *                           type: number
+ *                           format: float
+ *                           example: 3.20
+ *                           description: Carbon emissions for diet in kg CO2e per day
+ *                         percentage:
+ *                           type: string
+ *                           example: "37.9%"
+ *                           description: Percentage contribution to total footprint
+ *                     electricity:
+ *                       type: object
+ *                       properties:
+ *                         value:
+ *                           type: string
+ *                           example: "renewable_energy"
+ *                           description: Electricity source (renewable, grid, mixed)
+ *                         emission:
+ *                           type: number
+ *                           format: float
+ *                           example: 1.85
+ *                           description: Carbon emissions for electricity in kg CO2e per day
+ *                         percentage:
+ *                           type: string
+ *                           example: "21.9%"
+ *                           description: Percentage contribution to total footprint
+ *                     lifestyle:
+ *                       type: object
+ *                       properties:
+ *                         value:
+ *                           type: string
+ *                           example: "minimal_consumption"
+ *                           description: Lifestyle consumption level
+ *                         emission:
+ *                           type: number
+ *                           format: float
+ *                           example: 1.25
+ *                           description: Carbon emissions for lifestyle in kg CO2e per day
+ *                         percentage:
+ *                           type: string
+ *                           example: "14.8%"
+ *                           description: Percentage contribution to total footprint
+ *       404:
+ *         description: Carbon data not found - User may not have completed onboarding
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Carbon data not found."
+ *       401:
+ *         description: Unauthorized - Invalid or missing authentication token
+ *       500:
+ *         description: Server error - Failed to fetch carbon data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Failed to fetch carbon data."
+ */
+router.get("/carbon-data", verifyToken, allCarbonData);
 router.post("/submit", verifyToken, submitOnboarding);
 router.get("/dashboard", verifyToken, getDashboardData);
+router.get("/dashboard", verifyToken, allCarbonData);
 
 export default router;
