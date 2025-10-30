@@ -651,6 +651,7 @@ router.post("/splash", upload.single("media"), SplashPost);
 
 router.get("/splash", getSplashPosts);
 
+router.get("/posts", verifyToken, getAllPosts);
 router.post("/:postId/like", verifyToken, likePost);
 
 router.post("/:postId/comment", verifyToken, addComment);
