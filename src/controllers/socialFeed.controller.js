@@ -323,6 +323,107 @@ export const SplashPost = async (req, res) => {
   }
 };
 
+export const OnboardingPost = async (req, res) => {
+  try {
+    // Splash posts are public - user info is optional
+    const { uid, name, profilePictureUrl } = req.user || {};
+
+    const postId = uuidv4();
+    let mediaUrl = null;
+    let mediaType = null;
+
+    if (req.file) {
+      try {
+        const mediaResult = await uploadMedia(req.file, postId);
+        mediaUrl = mediaResult.url;
+        mediaType = mediaResult.type;
+      } catch (uploadError) {
+        console.error("Media upload error:", uploadError);
+        return res.status(400).json({
+          message: uploadError.message || "Failed to upload media",
+        });
+      }
+    }
+
+    // Create post data, filtering out undefined values
+    const postData = {
+      postId,
+      createdAt: new Date(),
+      likedBy: [],
+    };
+
+    // Only add fields that are not undefined
+    if (name !== undefined) postData.userName = name;
+    if (profilePictureUrl !== undefined)
+      postData.userProfilePictureUrl = profilePictureUrl;
+    if (mediaUrl !== null) {
+      if (mediaType === "image") {
+        postData.imageUrl = mediaUrl;
+      } else if (mediaType === "video") {
+        postData.videoUrl = mediaUrl;
+      }
+      postData.mediaType = mediaType;
+    }
+
+    // Delete all previous onboarding posts before creating new one
+    try {
+      const previousPosts = await db.collection("onboarding").get();
+      const deletePromises = [];
+
+      previousPosts.forEach((doc) => {
+        const prevPostData = doc.data();
+        // Delete media from Firebase Storage if it exists
+        if (prevPostData.imageUrl) {
+          const imagePath = `posts_images/${prevPostData.postId}.jpg`;
+          deletePromises.push(
+            bucket
+              .file(imagePath)
+              .delete()
+              .catch((err) => {
+                console.warn(
+                  `Could not delete image ${imagePath}:`,
+                  err.message
+                );
+              })
+          );
+        }
+        if (prevPostData.videoUrl) {
+          const videoPath = `posts_videos/${prevPostData.postId}.mp4`;
+          deletePromises.push(
+            bucket
+              .file(videoPath)
+              .delete()
+              .catch((err) => {
+                console.warn(
+                  `Could not delete video ${videoPath}:`,
+                  err.message
+                );
+              })
+          );
+        }
+        // Delete document from Firestore
+        deletePromises.push(db.collection("onboarding").doc(doc.id).delete());
+      });
+
+      await Promise.all(deletePromises);
+      console.log(`Deleted ${previousPosts.size} previous onboarding posts`);
+    } catch (deleteError) {
+      console.warn("Error deleting previous onboarding posts:", deleteError);
+      // Continue with creating new post even if deletion fails
+    }
+
+    // Create the new onboarding post
+    await db.collection("onboarding").doc(postId).set(postData);
+    return res.status(201).json({
+      message: "Post created successfully",
+      post: postData,
+    });
+  } catch (error) {
+    console.error("createPost error:", error);
+    res.status(500).json({ message: "Failed to create post" });
+  }
+};
+
 /**
  * Get splash posts with pagination
  * @route GET /api/feed/splash
@@ -392,6 +493,88 @@ export const getSplashPosts = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Splash posts retrieved successfully",
+      data: {
+        posts,
+        hasMore,
+        lastPostId: lastPost ? lastPost.postId : null,
+        count: posts.length,
+      },
+    });
+  } catch (error) {
+    console.error("getSplashPosts error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to retrieve splash posts",
+      error: error.message,
+    });
+  }
+};
+
+export const getOnboardingPosts = async (req, res) => {
+  try {
+    const { limit = 10, lastPostId } = req.query;
+    const pageLimit = Math.min(parseInt(limit) || 10, 50); // Cap at 50
+
+    // Query all onboarding posts (simple approach that works without indexes)
+    let query = db.collection("onboarding");
+
+    const snapshot = await query.get();
+
+    if (snapshot.empty) {
+      console.log("No onboarding posts found");
+      return res.status(200).json({
+        success: true,
+        message: "Onboarding posts retrieved successfully",
+        data: {
+          posts: [],
+          hasMore: false,
+          lastPostId: null,
+          count: 0,
+        },
+      });
+    }
+
+    const allPosts = [];
+
+    // Convert all posts and sort by createdAt in descending order
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      // Convert Firestore timestamp to ISO string if it exists
+      const createdAt =
+        data.createdAt?.toDate?.() || data.createdAt || new Date();
+
+      allPosts.push({
+        postId: doc.id,
+        ...data,
+        createdAt:
+          createdAt instanceof Date ? createdAt.toISOString() : createdAt,
+      });
+    });
+
+    // Sort by createdAt in descending order (newest first)
+    allPosts.sort((a, b) => {
+      const timeA = new Date(a.createdAt).getTime();
+      const timeB = new Date(b.createdAt).getTime();
+      return timeB - timeA; // Descending order
+    });
+
+    // Handle pagination
+    let startIndex = 0;
+    if (lastPostId) {
+      startIndex = allPosts.findIndex((post) => post.postId === lastPostId) + 1;
+    }
+
+    const posts = allPosts.slice(startIndex, startIndex + pageLimit);
+    const hasMore = startIndex + pageLimit < allPosts.length;
+    const lastPost = posts[posts.length - 1];
+
+    console.log(
+      `Fetched ${posts.length} onboarding posts from index ${startIndex}, total: ${allPosts.length}, hasMore: ${hasMore}`
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Onboarding posts retrieved successfully",
       data: {
         posts,
         hasMore,

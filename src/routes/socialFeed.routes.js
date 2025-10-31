@@ -14,6 +14,8 @@ import {
   getComments,
   SplashPost,
   getSplashPosts,
+  OnboardingPost,
+  getOnboardingPosts,
 } from "../controllers/socialFeed.controller.js";
 
 const router = express.Router();
@@ -466,6 +468,94 @@ router.post("/create", verifyToken, upload.single("media"), createPost);
 
 /**
  * @swagger
+ * /api/feed/onboarding-post:
+ *   post:
+ *     summary: Create an onboarding post (public post without authentication)
+ *     description: Create a public post without requiring user authentication. Can include text and/or media (image or video). Perfect for anonymous or guest contributions to the onboarding board.
+ *     tags: [SocialFeed]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               textContent:
+ *                 type: string
+ *                 maxLength: 500
+ *                 example: "Check out this amazing eco-friendly initiative!"
+ *                 description: Optional text content for the splash post (max 500 characters)
+ *               media:
+ *                 type: string
+ *                 format: binary
+ *                 description: "Optional image or video file - max 50MB. Images will be compressed to 1080px max resolution. Videos will be compressed to 720p and limited to 30 seconds."
+ *     responses:
+ *       201:
+ *         description: Splash post created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Post created successfully"
+ *                 post:
+ *                   type: object
+ *                   properties:
+ *                     postId:
+ *                       type: string
+ *                       example: "550e8400-e29b-41d4-a716-446655440000"
+ *                     textContent:
+ *                       type: string
+ *                       description: "Text content if provided"
+ *                     imageUrl:
+ *                       type: string
+ *                       description: "URL of uploaded image if applicable"
+ *                     videoUrl:
+ *                       type: string
+ *                       description: "URL of uploaded video if applicable"
+ *                     mediaType:
+ *                       type: string
+ *                       enum: [image, video]
+ *                       description: "Type of media uploaded"
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-10-30T10:30:00.000Z"
+ *                     likedBy:
+ *                       type: array
+ *                       example: []
+ *       400:
+ *         description: Validation error or file upload issue
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   examples:
+ *                     - "Text content required (max 500 chars)"
+ *                     - "File size exceeds 50MB limit"
+ *                     - "Unsupported file type. Only images and videos are allowed."
+ *                     - "Failed to upload media"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to create post"
+ */
+
+router.post("/onboarding-post", upload.single("media"), OnboardingPost);
+
+/**
+ * @swagger
  * /api/feed/splash:
  *   post:
  *     summary: Create a splash post (public post without authentication)
@@ -650,6 +740,108 @@ router.post("/splash", upload.single("media"), SplashPost);
  */
 
 router.get("/splash", getSplashPosts);
+
+/**
+ * @swagger
+ * /api/feed/onboarding-posts:
+ *   get:
+ *     summary: Get all onboarding posts with pagination
+ *     description: Retrieve public onboarding posts in reverse chronological order (newest first). No authentication required.
+ *     tags: [SocialFeed]
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *           maximum: 50
+ *         description: Number of posts to retrieve (max 50)
+ *       - in: query
+ *         name: lastPostId
+ *         schema:
+ *           type: string
+ *         description: ID of the last post from previous page (for pagination)
+ *     responses:
+ *       200:
+ *         description: Splash posts retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Splash posts retrieved successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     posts:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           postId:
+ *                             type: string
+ *                             example: "550e8400-e29b-41d4-a716-446655440000"
+ *                           userName:
+ *                             type: string
+ *                             description: "Name of post creator (if provided)"
+ *                           userProfilePictureUrl:
+ *                             type: string
+ *                             description: "Profile picture URL of post creator (if provided)"
+ *                           textContent:
+ *                             type: string
+ *                             example: "Check out this amazing eco-friendly initiative!"
+ *                           imageUrl:
+ *                             type: string
+ *                             description: "URL of uploaded image (if applicable)"
+ *                           videoUrl:
+ *                             type: string
+ *                             description: "URL of uploaded video (if applicable)"
+ *                           mediaType:
+ *                             type: string
+ *                             enum: [image, video]
+ *                             description: "Type of media (if any)"
+ *                           createdAt:
+ *                             type: string
+ *                             format: date-time
+ *                             example: "2025-10-30T10:30:00.000Z"
+ *                           likedBy:
+ *                             type: array
+ *                             description: "Array of user IDs who liked the post"
+ *                     hasMore:
+ *                       type: boolean
+ *                       example: true
+ *                       description: "Whether more posts are available"
+ *                     lastPostId:
+ *                       type: string
+ *                       description: "ID of the last post in this page (use for next pagination)"
+ *                     count:
+ *                       type: integer
+ *                       example: 10
+ *                       description: "Number of posts returned in this page"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to retrieve splash posts"
+ */
+
+
+router.get("/onboarding-posts", getOnboardingPosts);
+
+
 
 router.get("/posts", verifyToken, getAllPosts);
 router.post("/:postId/like", verifyToken, likePost);
