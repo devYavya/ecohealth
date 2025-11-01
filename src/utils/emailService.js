@@ -22,14 +22,14 @@ export const sendVerificationEmail = async (email, name, verificationLink) => {
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to: email,
-    subject: "Verify Your Email - EcoHealth 🌱",
+    subject: "Verify Your Email - EcoCue 🌱",
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-          <h1 style="color: white; margin: 0;">🌱 EcoHealth</h1>
+          <h1 style="color: white; margin: 0;">🌱 EcoCue</h1>
         </div>
         <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
-          <h2 style="color: #333; margin-top: 0;">Welcome to EcoHealth, ${name}!</h2>
+          <h2 style="color: #333; margin-top: 0;">Welcome to EcoCue, ${name}!</h2>
           <p style="color: #666; font-size: 16px;">Thank you for joining our community dedicated to sustainable living.</p>
           
           <p style="color: #666; font-size: 16px;">Please verify your email address by clicking the button below:</p>
@@ -53,7 +53,7 @@ export const sendVerificationEmail = async (email, name, verificationLink) => {
           </p>
         </div>
         <div style="background: #f0f0f0; padding: 20px; text-align: center; border-radius: 0 0 10px 10px; font-size: 12px; color: #999;">
-          <p>© 2025 EcoHealth. All rights reserved.</p>
+          <p>© 2025 EcoCue. All rights reserved.</p>
         </div>
       </div>
     `,
@@ -78,14 +78,14 @@ export const sendWelcomeEmail = async (email, name) => {
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to: email,
-    subject: "Welcome to EcoHealth! 🎉",
+    subject: "Welcome to EcoCue! 🎉",
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-          <h1 style="color: white; margin: 0;">🌱 EcoHealth</h1>
+          <h1 style="color: white; margin: 0;">🌱 EcoCue</h1>
         </div>
         <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
-          <h2 style="color: #333; margin-top: 0;">Welcome to EcoHealth! 🎉</h2>
+          <h2 style="color: #333; margin-top: 0;">Welcome to EcoCue! 🎉</h2>
           <p style="color: #666; font-size: 16px;">Hi ${name},</p>
           
           <p style="color: #666; font-size: 16px;">Your email has been verified successfully! Your account is now fully activated.</p>
@@ -108,7 +108,7 @@ export const sendWelcomeEmail = async (email, name) => {
           </p>
         </div>
         <div style="background: #f0f0f0; padding: 20px; text-align: center; border-radius: 0 0 10px 10px; font-size: 12px; color: #999;">
-          <p>© 2025 EcoHealth. All rights reserved.</p>
+          <p>© 2025 EcoCue. All rights reserved.</p>
         </div>
       </div>
     `,
@@ -138,17 +138,17 @@ export const sendResendVerificationEmail = async (
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to: email,
-    subject: "Resend: Verify Your Email - EcoHealth 🌱",
+    subject: "Resend: Verify Your Email - EcoCue 🌱",
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-          <h1 style="color: white; margin: 0;">🌱 EcoHealth</h1>
+          <h1 style="color: white; margin: 0;">🌱 EcoCue</h1>
         </div>
         <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
           <h2 style="color: #333; margin-top: 0;">Verify Your Email</h2>
           <p style="color: #666; font-size: 16px;">Hi ${name},</p>
           
-          <p style="color: #666; font-size: 16px;">Here's a fresh verification link for your EcoHealth account:</p>
+          <p style="color: #666; font-size: 16px;">Here's a fresh verification link for your EcoCue account:</p>
           
           <div style="text-align: center; margin: 30px 0;">
             <a href="${verificationLink}" style="background-color: #4CAF50; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px; display: inline-block;">
@@ -165,7 +165,7 @@ export const sendResendVerificationEmail = async (
           </p>
         </div>
         <div style="background: #f0f0f0; padding: 20px; text-align: center; border-radius: 0 0 10px 10px; font-size: 12px; color: #999;">
-          <p>© 2025 EcoHealth. All rights reserved.</p>
+          <p>© 2025 EcoCue. All rights reserved.</p>
         </div>
       </div>
     `,
